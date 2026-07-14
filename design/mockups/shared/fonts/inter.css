@@ -1,0 +1,9 @@
+/* Inter variable font (latin subset), weights 100-900.
+   Downloaded from Google Fonts (SIL Open Font License 1.1). */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('Inter-latin.woff2') format('woff2');
+}

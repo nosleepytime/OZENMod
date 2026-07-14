@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OZENMod — AI moderation for Twitch</title>
+<link rel="stylesheet" href="../shared/fonts/inter.css">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/components.css">
+<style>
+  body { overflow-x: hidden; }
+  .hero {
+    position: relative; padding: 84px 0 72px;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: -200px 0 0;
+    background:
+      radial-gradient(700px 420px at 22% 10%, rgba(124, 92, 255, 0.20), transparent 65%),
+      radial-gradient(600px 400px at 85% 25%, rgba(96, 165, 250, 0.10), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+  .hero-copy { display: flex; flex-direction: column; gap: 22px; }
+  .cta-row { display: flex; gap: 12px; align-items: center; }
+  .trust-row { display: flex; gap: 18px; color: var(--text-3); font-size: 12.5px; align-items: center; }
+  .trust-row .row { gap: 6px; }
+
+  .preview-wrap { position: relative; }
+  .preview-glow { position: absolute; inset: 10% -6% -8% -6%; background: radial-gradient(closest-side, rgba(124,92,255,0.22), transparent 70%); filter: blur(8px); }
+  .preview { position: relative; padding: 16px 18px 18px; }
+  .preview .feed-msg { max-width: 260px; }
+  .float-card {
+    position: absolute; right: -22px; bottom: -26px; width: 300px; padding: 14px 16px;
+    background: var(--surface-2); border: 1px solid var(--border-strong);
+    border-radius: 14px; box-shadow: var(--shadow-pop); font-size: 12.5px;
+  }
+  .strip { border-block: 1px solid var(--border); background: rgba(20, 20, 31, 0.5); }
+  .strip-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .strip-item { padding: 26px 18px; text-align: center; border-left: 1px solid var(--border); }
+  .strip-item:first-child { border-left: 0; }
+  .strip-item b { display: block; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+  .strip-item span { font-size: 12.5px; color: var(--text-3); }
+
+  .section { padding: 84px 0; }
+  .section-head { display: flex; flex-direction: column; gap: 10px; max-width: 620px; margin-bottom: 40px; }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature-card p { font-size: 13px; color: var(--text-3); line-height: 1.6; }
+  .feature-card b { font-size: 14.5px; }
+
+  .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .step-num { width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); color: var(--accent-ink); display: grid; place-items: center; font-weight: 800; font-size: 13px; border: 1px solid rgba(124,92,255,.3); }
+
+  .providers-band { display: flex; flex-wrap: wrap; gap: 10px; }
+  .provider-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-weight: 600; font-size: 13.5px; }
+  .provider-pill small { font-size: 11px; color: var(--text-3); font-weight: 500; }
+  .provider-pill.active { border-color: rgba(124,92,255,.45); background: var(--accent-soft); }
+
+  .tiers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 900px; }
+  .tier-list { display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; color: var(--text-2); }
+  .tier-list .row { gap: 9px; align-items: flex-start; }
+  .tier-list .ic { color: var(--good); margin-top: 3px; width: 14px; height: 14px; }
+  .tier-price { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; }
+  .tier-price small { font-size: 13px; color: var(--text-3); font-weight: 500; }
+
+  .faq-item { padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .faq-q { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14.5px; }
+  .faq-a { color: var(--text-3); font-size: 13.5px; line-height: 1.65; max-width: 760px; }
+  .faq-list { display: flex; flex-direction: column; gap: 10px; max-width: 860px; }
+
+  .cta-band { text-align: center; padding: 74px 0 84px; position: relative; }
+  .cta-band::before { content: ''; position: absolute; inset: 0; background: radial-gradient(500px 260px at 50% 40%, rgba(124,92,255,.18), transparent 70%); pointer-events: none; }
+  .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 30px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.6-3 7.9-7 9.5-4-1.6-7-4.9-7-9.5V6z"/></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5L4.5 14H11l-1.5 7.5L18 10h-6.5z"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3.5 20c.5-3.5 2.8-5.5 5.5-5.5s5 2 5.5 5.5M16.5 5.8a2.9 2.9 0 110 5.4M16 14.8c2.3.3 3.9 2 4.3 5.2"/></symbol>
+<symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="10.2" y="10.2" width="3.6" height="3.6"/><path d="M12 2.5V6M12 18v3.5M2.5 12H6M18 12h3.5"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="14.5" r="3.8"/><path d="M11 11.5L20 3M16 5.5l3 3"/></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 4v16M7 20h10M12 6.5L5.5 9M12 6.5L18.5 9M5.5 9L3 14a3 3 0 005 0zM18.5 9L16 14a3 3 0 005 0z"/></symbol>
+<symbol id="i-twitch" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 2h17v12.5L16.5 19H13l-2.5 2.5V19H4V2zm7 4.5h2v5h-2v-5zm5 0h2v5h-2v-5z"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+</defs></svg>
+
+<!-- ===================== NAV ===================== -->
+<nav class="m-nav">
+  <a class="logo" href="#">
+    <span class="logo-mark"><svg class="ic ic-fill"><use href="#i-shield" style="fill:currentColor"/></svg></span>
+    <span class="logo-name">OZEN<b style="color:var(--accent-2)">Mod</b></span>
+  </a>
+  <div class="m-links grow">
+    <a href="#">Features</a><a href="#">How it works</a><a href="#">Providers</a><a href="#">FAQ</a><a href="#">Docs</a>
+  </div>
+  <div class="row">
+    <a class="btn btn-outline btn-sm" href="#"><svg class="ic ic-sm"><use href="#i-code"/></svg> GitHub</a>
+    <a class="btn btn-ghost" href="#">Sign in</a>
+    <a class="btn btn-primary" href="#"><svg class="ic"><use href="#i-download"/></svg> Download free</a>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="m-container hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow" style="align-self:flex-start"><svg class="ic ic-sm"><use href="#i-sparkle"/></svg> Open source · Free forever tier</span>
+      <h1 class="h-display">Moderation that actually <span class="grad">understands</span> your chat.</h1>
+      <p class="lead">OZENMod watches your Twitch chat in real time and reasons about context — not just keywords. It deletes, warns, times out or escalates to you, and explains every single decision.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary btn-lg" href="#"><svg class="ic"><use href="#i-download"/></svg> Download for Windows</a>
+        <a class="btn btn-ghost btn-lg" href="#">Download for macOS</a>
+      </div>
+      <div class="trust-row">
+        <span class="row"><svg class="ic ic-sm" style="color:var(--good)"><use href="#i-check"/></svg> No subscription</span>
+        <span class="row"><svg class="ic ic-sm" style="color:var(--good)"><use href="#i-check"/></svg> Runs on your PC</span>
+        <span class="row"><svg class="ic ic-sm" style="color:var(--good)"><use href="#i-check"/></svg> MIT licensed</span>
+        <span class="row"><svg class="ic ic-sm" style="color:var(--good)"><use href="#i-check"/></svg> Your chat is never stored</span>
+      </div>
+    </div>
+
+    <div class="preview-wrap">
+      <div class="preview-glow"></div>
+      <div class="card preview">
+        <div class="row" style="padding-bottom:12px;border-bottom:1px solid var(--border)">
+          <span class="chip chip-good"><span class="dot pulse"></span> Protecting #pixelforge</span>
+          <span class="chip"><svg class="ic ic-sm"><use href="#i-clock"/></svg> 02:14:36</span>
+          <span class="grow"></span>
+          <span class="chip chip-accent"><svg class="ic ic-sm"><use href="#i-sparkle"/></svg> AI: Pollinations</span>
+        </div>
+        <div class="feed">
+          <div class="feed-item calm">
+            <div class="feed-body"><div class="feed-line"><span class="feed-user" style="color:#6BD3FB">mia_kplays</span><span class="feed-msg">that boss fight was insane, clip it!!</span><span class="feed-time">22:13:41</span></div></div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-body">
+              <div class="feed-line"><span class="feed-user" style="color:#F9A8D4">xX_rager_Xx</span><span class="feed-msg struck">you're trash mia go back to fortnite</span><span class="feed-time">22:13:58</span></div>
+              <div class="feed-reason"><span class="chip chip-warn"><svg class="ic ic-sm"><use href="#i-eye"/></svg> Warning 2/3</span> Targeted insult at another chatter</div>
+            </div>
+          </div>
+          <div class="feed-item">
+            <div class="feed-body">
+              <div class="feed-line"><span class="feed-user" style="color:#FCD34D">grifter_joe</span><span class="feed-msg struck">FREE BITS at b1ts-4u.top just log in with twitch</span><span class="feed-time">22:14:31</span></div>
+              <div class="feed-reason"><span class="chip chip-danger"><svg class="ic ic-sm"><use href="#i-ban"/></svg> Deleted · Timeout 10m</span> Phishing link (credential scam)</div>
+            </div>
+          </div>
+          <div class="feed-item calm" style="border-bottom:0">
+            <div class="feed-body"><div class="feed-line"><span class="feed-user" style="color:#86EFAC">new_viewer42</span><span class="feed-msg">lol the bot is fast</span><span class="feed-time">22:14:39</span></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="float-card">
+        <div class="row" style="gap:8px;margin-bottom:6px"><svg class="ic" style="color:var(--accent-2)"><use href="#i-sparkle"/></svg><b>Why this decision?</b></div>
+        <span class="dim">“Second targeted insult this stream after a prior warning — strike 2/3, message removed.”</span>
+        <div class="row" style="margin-top:10px;gap:6px"><span class="chip">confidence 0.83</span><span class="chip">source: AI</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== STATS STRIP ===================== -->
+<section class="strip">
+  <div class="m-container strip-grid">
+    <div class="strip-item"><b>&lt; 5 ms</b><span>local decisions</span></div>
+    <div class="strip-item"><b>≥ 95%</b><span>handled without AI calls</span></div>
+    <div class="strip-item"><b>$0</b><span>to run the free tier</span></div>
+    <div class="strip-item"><b>100%</b><span>open source (MIT)</span></div>
+  </div>
+</section>
+
+<!-- ===================== FEATURES ===================== -->
+<section class="section">
+  <div class="m-container">
+    <div class="section-head">
+      <span class="section-kicker">Why OZENMod</span>
+      <h2 class="section-title">A moderator that reasons, not a blacklist</h2>
+      <p class="lead" style="font-size:15px">Blacklists punish the innocent and miss the clever. OZENMod normalizes evasion tricks, scores context locally, and asks an AI only when a message is genuinely ambiguous.</p>
+    </div>
+    <div class="features-grid">
+      <div class="card feature-card"><span class="feature-ic"><svg class="ic"><use href="#i-sparkle"/></svg></span><b>Context-aware AI</b><p>Conversation history, targets, irony and intent — ambiguous messages get real judgement, with a verdict and a confidence score.</p></div>
+      <div class="card feature-card"><span class="feature-ic"><svg class="ic"><use href="#i-bolt"/></svg></span><b>Local-first speed</b><p>Spam, flood, links, evasion and obvious toxicity are decided on your machine in under 5 ms. The AI is the exception, not the rule.</p></div>
+      <div class="card feature-card"><span class="feature-ic"><svg class="ic"><use href="#i-eye"/></svg></span><b>Explainable decisions</b><p>Allow, delete, warn, timeout, ban or human review — every action is logged with a reason you and your mods can read.</p></div>
+      <div class="card feature-card"><span class="feature-ic"><svg class="ic"><use href="#i-scale"/></svg></span><b>Fair warning ladder</b><p>Strikes before sanctions, escalating timeouts if you prefer, exemptions for mods and VIPs — and instant action on severe content.</p></div>
+      <div class="card feature-card"><span class="feature-ic"><svg class="ic"><use href="#i-shield"/></svg></span><b>Evasion-proof filters</b><p>Leetspeak, homoglyphs, zero-width characters, s p a c i n g — normalization folds the tricks before rules run.</p></div>
+      <div class="card feature-card"><span class="feature-ic"><svg class="ic"><use href="#i-key"/></svg></span><b>Your keys, your control</b><p>Pollinations free tier by default. Plug OpenAI, Anthropic, Gemini or a local Ollama — keys never leave your computer.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== HOW IT WORKS ===================== -->
+<section class="section" style="padding-top:10px">
+  <div class="m-container">
+    <div class="section-head">
+      <span class="section-kicker">How it works</span>
+      <h2 class="section-title">Protected in three steps</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="card feature-card"><span class="step-num">1</span><b>Download &amp; connect</b><p>Install the app (Windows/macOS) and link Twitch with a device code — your account or a dedicated bot account.</p></div>
+      <div class="card feature-card"><span class="step-num">2</span><b>Start the bot before you stream</b><p>Open OZENMod, press Start — or let it auto-start when your stream goes live. Everything runs on your computer.</p></div>
+      <div class="card feature-card"><span class="step-num">3</span><b>Stream worry-free</b><p>Watch decisions land in the live feed with reasons. Tune rules from the app or the web dashboard, even mid-stream.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PROVIDERS ===================== -->
+<section class="section" style="padding-top:10px">
+  <div class="m-container">
+    <div class="section-head">
+      <span class="section-kicker">AI providers</span>
+      <h2 class="section-title">Free by default, modular by design</h2>
+      <p class="lead" style="font-size:15px">The free tier ships with Pollinations — no account, no API key. Prefer another brain? Swap providers in one click.</p>
+    </div>
+    <div class="providers-band">
+      <span class="provider-pill active"><svg class="ic" style="color:var(--accent-2)"><use href="#i-sparkle"/></svg> Pollinations <small>· default · free · no key</small></span>
+      <span class="provider-pill">OpenAI <small>· your key</small></span>
+      <span class="provider-pill">Anthropic <small>· your key</small></span>
+      <span class="provider-pill">Google Gemini <small>· your key</small></span>
+      <span class="provider-pill"><svg class="ic" style="color:var(--text-3)"><use href="#i-cpu"/></svg> Ollama <small>· local · offline</small></span>
+      <span class="provider-pill">Custom endpoint <small>· OpenAI-compatible</small></span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TIERS ===================== -->
+<section class="section" style="padding-top:10px">
+  <div class="m-container">
+    <div class="section-head">
+      <span class="section-kicker">Pricing</span>
+      <h2 class="section-title">Free means free</h2>
+    </div>
+    <div class="tiers-grid">
+      <div class="card card-pad" style="border-color:rgba(124,92,255,.4)">
+        <div class="row" style="justify-content:space-between"><b style="font-size:16px">Free</b><span class="chip chip-good"><svg class="ic ic-sm"><use href="#i-check"/></svg> Available at launch</span></div>
+        <div class="tier-price" style="margin:10px 0 14px">$0 <small>forever</small></div>
+        <div class="tier-list">
+          <span class="row"><svg class="ic"><use href="#i-check"/></svg> Full AI moderation — every feature, no limits on rules</span>
+          <span class="row"><svg class="ic"><use href="#i-check"/></svg> Desktop app for Windows &amp; macOS runs the bot during your stream</span>
+          <span class="row"><svg class="ic"><use href="#i-check"/></svg> Web dashboard: stats, history, remote configuration</span>
+          <span class="row"><svg class="ic"><use href="#i-check"/></svg> Pollinations AI included · bring your own provider anytime</span>
+          <span class="row"><svg class="ic"><use href="#i-check"/></svg> Community support, open source forever</span>
+        </div>
+        <a class="btn btn-primary" style="margin-top:18px" href="#"><svg class="ic"><use href="#i-download"/></svg> Download the app</a>
+      </div>
+      <div class="card card-pad" style="opacity:.85">
+        <div class="row" style="justify-content:space-between"><b style="font-size:16px">Premium</b><span class="chip"><svg class="ic ic-sm"><use href="#i-clock"/></svg> Planned — not available yet</span></div>
+        <div class="tier-price" style="margin:10px 0 14px">Later <small>· optional</small></div>
+        <div class="tier-list">
+          <span class="row"><svg class="ic" style="color:var(--text-3)"><use href="#i-check"/></svg> Hosted bot — moderates 24/7 without the desktop app</span>
+          <span class="row"><svg class="ic" style="color:var(--text-3)"><use href="#i-check"/></svg> Same engine, same rules, zero setup on stream day</span>
+          <span class="row"><svg class="ic" style="color:var(--text-3)"><use href="#i-check"/></svg> The free tier stays complete — premium only adds hosting</span>
+        </div>
+        <a class="btn btn-ghost" style="margin-top:18px" href="#">Get notified</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FAQ ===================== -->
+<section class="section" style="padding-top:10px">
+  <div class="m-container">
+    <div class="section-head">
+      <span class="section-kicker">FAQ</span>
+      <h2 class="section-title">Questions, answered</h2>
+    </div>
+    <div class="faq-list">
+      <div class="card faq-item">
+        <div class="faq-q">Is it really 100% free? <svg class="ic" style="color:var(--text-3);transform:rotate(180deg)"><use href="#i-chev"/></svg></div>
+        <p class="faq-a">Yes. The bot runs on your computer, the dashboard runs on free hosting, data lives on Firebase's free plan and the default AI (Pollinations) needs no account. There is no paid feature today — a future premium tier will only add optional cloud hosting.</p>
+      </div>
+      <div class="card faq-item"><div class="faq-q">Do you store my chat? <svg class="ic" style="color:var(--text-3)"><use href="#i-chev"/></svg></div>
+        <p class="faq-a">No. Messages are analyzed in memory on your machine and never persisted. Warnings and session stats are temporary and deleted automatically when your stream ends.</p></div>
+      <div class="card faq-item"><div class="faq-q">What if the AI gets it wrong? <svg class="ic" style="color:var(--text-3)"><use href="#i-chev"/></svg></div>
+        <p class="faq-a">Uncertain cases go to a human-review queue instead of a sanction, every action is explained and reversible, and “mark as false positive” tunes your channel's thresholds.</p></div>
+      <div class="card faq-item"><div class="faq-q">Does it replace my human mods? <svg class="ic" style="color:var(--text-3)"><use href="#i-chev"/></svg></div>
+        <p class="faq-a">It works with them. Mods and VIPs are exempt by default, the review queue is built for them, and the dashboard gives them the same visibility you have.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CTA ===================== -->
+<section class="cta-band">
+  <div class="m-container" style="display:flex;flex-direction:column;align-items:center;gap:18px">
+    <h2 class="section-title" style="font-size:36px">Protect your next stream.</h2>
+    <p class="lead">Five minutes from download to a chat that moderates itself.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary btn-lg" href="#"><svg class="ic"><use href="#i-download"/></svg> Download OZENMod</a>
+      <a class="btn btn-twitch btn-lg" href="#"><svg class="ic ic-fill"><use href="#i-twitch"/></svg> Sign in with Twitch</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  <div class="m-container footer-grid" style="max-width:1180px">
+    <div>
+      <a class="logo" href="#">
+        <span class="logo-mark"><svg class="ic ic-fill"><use href="#i-shield" style="fill:currentColor"/></svg></span>
+        <span class="logo-name">OZEN<b style="color:var(--accent-2)">Mod</b></span>
+      </a>
+      <p style="color:var(--text-3);font-size:12.5px;margin-top:12px;max-width:280px">Open-source, context-aware AI moderation for Twitch. Built for streamers, free to run.</p>
+      <p style="color:var(--text-3);font-size:12px;margin-top:16px">© 2026 OZENMod contributors · MIT License</p>
+    </div>
+    <div><h5>Product</h5><a href="#">Download</a><a href="#">Dashboard</a><a href="#">Changelog</a><a href="#">Roadmap</a></div>
+    <div><h5>Resources</h5><a href="#">Documentation</a><a href="#">GitHub</a><a href="#">Report an issue</a><a href="#">Discussions</a></div>
+    <div><h5>Legal</h5><a href="#">Privacy policy</a><a href="#">Terms of use</a><a href="#">License</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

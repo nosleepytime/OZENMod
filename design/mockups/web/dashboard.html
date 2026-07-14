@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overview — OZENMod Dashboard</title>
+<link rel="stylesheet" href="../shared/fonts/inter.css">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/components.css">
+<style>
+  .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
+  .col-stack { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Column chart (messages per 30 min) */
+  .colchart { display: grid; grid-template-columns: 34px 1fr; gap: 10px; }
+  .ylabels { display: flex; flex-direction: column; justify-content: space-between; height: 300px; text-align: right; font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums; transform: translateY(-5px); }
+  .plot { position: relative; height: 300px; }
+  .plot .gl { position: absolute; left: 0; right: 0; height: 1px; background: var(--grid); }
+  .plot .baseline { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--axis); }
+  .cols { position: absolute; inset: 0; display: flex; justify-content: space-around; align-items: flex-end; }
+  .col-slot { position: relative; width: 22px; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+  .colbar { display: block; width: 22px; background: var(--series-1); border-radius: 4px 4px 0 0; }
+  .collab { position: absolute; left: 50%; transform: translateX(-50%); font-size: 10.5px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .xlabels { display: flex; justify-content: space-around; margin-top: 8px; font-size: 10.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .xlabels span { width: 34px; text-align: center; }
+
+  /* Local vs AI */
+  .hero-pct { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
+
+  /* Review queue */
+  .review-item { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .review-item:last-of-type { border-bottom: 0; padding-bottom: 4px; }
+  .review-quote { font-size: 12.5px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-left: 2px solid var(--warn); border-radius: 8px; padding: 8px 10px; }
+
+  .syncbar { display: flex; align-items: center; gap: 10px; padding: 12px 18px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.6-3 7.9-7 9.5-4-1.6-7-4.9-7-9.5V6z"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="15" cy="7" r="2.2"/><circle cx="8" cy="12" r="2.2"/><circle cx="17" cy="17" r="2.2"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M21.2 12h-3M5.8 12h-3M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1M18.5 18.5l-2.1-2.1M7.6 7.6L5.5 5.5"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9.5a6 6 0 0112 0c0 4.8 1.8 6 1.8 6H4.2s1.8-1.2 1.8-6"/><path d="M10.5 20a1.8 1.8 0 003 0"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol id="i-msg" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 01-8.5 8.5H4l2.5-3A8.5 8.5 0 1121 11.5z"/></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5L4.5 14H11l-1.5 7.5L18 10h-6.5z"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5L22 20H2z"/><path d="M12 10v4M12 17h.01"/></symbol>
+</defs></svg>
+
+<div class="shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <a class="logo" href="#">
+      <span class="logo-mark"><svg class="ic ic-fill"><use href="#i-shield" style="fill:currentColor"/></svg></span>
+      <span class="logo-name">OZEN<b style="color:var(--accent-2)">Mod</b></span>
+    </a>
+    <div class="nav-label">Channel</div>
+    <a class="nav-item active" href="#"><svg class="ic"><use href="#i-home"/></svg> Overview</a>
+    <a class="nav-item" href="#"><svg class="ic"><use href="#i-list"/></svg> Moderation</a>
+    <a class="nav-item" href="#"><svg class="ic"><use href="#i-sparkle"/></svg> AI &amp; Providers</a>
+    <a class="nav-item" href="#"><svg class="ic"><use href="#i-sliders"/></svg> Filters</a>
+    <a class="nav-item" href="#"><svg class="ic"><use href="#i-gear"/></svg> Settings</a>
+    <div class="nav-label">Resources</div>
+    <a class="nav-item" href="#"><svg class="ic"><use href="#i-download"/></svg> Desktop app</a>
+    <a class="nav-item" href="#"><svg class="ic"><use href="#i-code"/></svg> Documentation</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-user">
+      <span class="avatar">P</span>
+      <div style="min-width:0">
+        <b style="font-size:13px;display:block">pixelforge</b>
+        <span style="font-size:11px;color:var(--text-3)">Free plan</span>
+      </div>
+      <svg class="ic" style="margin-left:auto;color:var(--text-3)"><use href="#i-chev"/></svg>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">Overview</span>
+      <span class="divider-v"></span>
+      <span class="chip chip-danger"><span class="dot pulse"></span> LIVE</span>
+      <span class="chip">#pixelforge</span>
+      <span class="chip"><svg class="ic ic-sm"><use href="#i-clock"/></svg> Session 02:14:36</span>
+      <span class="grow"></span>
+      <span class="chip chip-good"><span class="dot"></span> Bot online · desktop app</span>
+      <button class="btn btn-ghost btn-sm" style="width:34px;padding:0"><svg class="ic"><use href="#i-bell"/></svg></button>
+      <span class="avatar avatar-sm">P</span>
+    </div>
+
+    <div class="content">
+      <!-- Stat tiles -->
+      <div class="stats-row">
+        <div class="card stat">
+          <span class="stat-label"><svg class="ic ic-sm"><use href="#i-msg"/></svg> Messages analyzed</span>
+          <div class="row" style="justify-content:space-between;align-items:flex-end">
+            <div><div class="stat-value">12,482</div><span class="stat-delta up">↑ 8% vs last stream</span></div>
+            <svg width="92" height="30" viewBox="0 0 92 30" style="margin-bottom:6px">
+              <polyline points="2,24 10,21 18,22 26,17 34,18 42,13 50,15 58,10 66,12 74,8 82,9" fill="none" stroke="var(--text-3)" stroke-width="1.5"/>
+              <polyline points="82,9 90,4" fill="none" stroke="var(--series-1)" stroke-width="2"/>
+              <circle cx="90" cy="4" r="3" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card stat">
+          <span class="stat-label"><svg class="ic ic-sm"><use href="#i-shield"/></svg> Actions taken</span>
+          <div class="stat-value">96</div>
+          <span class="stat-delta flat">0.8% of messages</span>
+        </div>
+        <div class="card stat">
+          <span class="stat-label"><svg class="ic ic-sm"><use href="#i-sparkle"/></svg> AI calls</span>
+          <div class="stat-value">214</div>
+          <span class="stat-delta flat">1.7% of messages · Pollinations</span>
+        </div>
+        <div class="card stat">
+          <span class="stat-label"><svg class="ic ic-sm"><use href="#i-eye"/></svg> Human review</span>
+          <div class="stat-value">2</div>
+          <span class="stat-delta" style="color:var(--warn)">pending your decision</span>
+        </div>
+      </div>
+
+      <!-- Chart + side column -->
+      <div class="grid-main">
+        <div class="card card-pad">
+          <div class="card-head">
+            <div><div class="card-title">Chat activity</div><div class="card-sub">Messages analyzed per 30 minutes — current session</div></div>
+            <span class="seg"><span class="seg-item active">Session</span><span class="seg-item">7 days</span><span class="seg-item">30 days</span></span>
+          </div>
+          <div class="colchart">
+            <div class="ylabels"><span>2,000</span><span>1,500</span><span>1,000</span><span>500</span><span>0</span></div>
+            <div>
+              <div class="plot">
+                <div class="gl" style="top:0"></div>
+                <div class="gl" style="top:25%"></div>
+                <div class="gl" style="top:50%"></div>
+                <div class="gl" style="top:75%"></div>
+                <div class="baseline"></div>
+                <div class="cols">
+                  <div class="col-slot"><i class="colbar" style="height:31%"></i></div>
+                  <div class="col-slot"><i class="colbar" style="height:49%"></i></div>
+                  <div class="col-slot"><i class="colbar" style="height:68.5%"></i></div>
+                  <div class="col-slot"><i class="colbar" style="height:90.5%"></i></div>
+                  <div class="col-slot"><i class="colbar" style="height:77%"></i></div>
+                  <div class="col-slot"><i class="colbar" style="height:84%"></i></div>
+                  <div class="col-slot"><span class="collab" style="bottom:calc(96.5% + 6px)">1,930</span><i class="colbar" style="height:96.5%"></i></div>
+                  <div class="col-slot"><i class="colbar" style="height:86%"></i></div>
+                  <div class="col-slot"><i class="colbar" style="height:41%"></i></div>
+                </div>
+              </div>
+              <div class="xlabels"><span>18:00</span><span>18:30</span><span>19:00</span><span>19:30</span><span>20:00</span><span>20:30</span><span>21:00</span><span>21:30</span><span>22:00</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-stack">
+          <div class="card card-pad">
+            <div class="card-head" style="margin-bottom:8px"><div class="card-title">Resolved locally</div></div>
+            <div class="hero-pct">98.3%</div>
+            <div class="card-sub" style="margin-bottom:12px">of messages decided without an AI call</div>
+            <div class="meter">
+              <i style="width:98.3%;background:var(--series-1)"></i>
+              <i style="width:1.7%;background:var(--series-2)"></i>
+            </div>
+            <div class="legend" style="margin-top:12px">
+              <span><i style="background:var(--series-1)"></i>Local · 12,268</span>
+              <span><i style="background:var(--series-2)"></i>AI-assisted · 214</span>
+            </div>
+          </div>
+
+          <div class="card card-pad">
+            <div class="card-head" style="margin-bottom:10px"><div class="card-title">Actions breakdown</div><span class="chip">96 total</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="hbar-row"><span class="lbl">Deleted</span><div><div class="hbar" style="width:100%"></div></div><span class="val">42</span></div>
+              <div class="hbar-row"><span class="lbl">Warnings</span><div><div class="hbar" style="width:74%"></div></div><span class="val">31</span></div>
+              <div class="hbar-row"><span class="lbl">Timeouts</span><div><div class="hbar" style="width:40%"></div></div><span class="val">17</span></div>
+              <div class="hbar-row"><span class="lbl">Review</span><div><div class="hbar" style="width:10%"></div></div><span class="val">4</span></div>
+              <div class="hbar-row"><span class="lbl">Bans</span><div><div class="hbar" style="width:5%"></div></div><span class="val">2</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent actions -->
+        <div class="card">
+          <div class="card-head" style="padding:18px 18px 0;margin-bottom:6px">
+            <div><div class="card-title">Recent actions</div><div class="card-sub">Every decision is explained — click a row for full context</div></div>
+            <a class="btn btn-outline btn-sm" href="#">View all →</a>
+          </div>
+          <table class="table">
+            <thead><tr><th>Time</th><th>User</th><th>Category</th><th>Action</th><th>Source</th><th>Reason</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="cell-time">22:14:31</td>
+                <td><span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#FCD34D,#F59E0B)">G</span>grifter_joe</span></td>
+                <td><span class="chip">Scam link</span></td>
+                <td><span class="chip chip-danger"><svg class="ic ic-sm"><use href="#i-ban"/></svg> Deleted + 10m</span></td>
+                <td><span class="chip">Local</span></td>
+                <td class="cell-reason">URL shortener promising free bits — link policy: trusted only</td>
+              </tr>
+              <tr>
+                <td class="cell-time">22:13:58</td>
+                <td><span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#F9A8D4,#EC4899)">X</span>xX_rager_Xx</span></td>
+                <td><span class="chip">Harassment</span></td>
+                <td><span class="chip chip-warn"><svg class="ic ic-sm"><use href="#i-eye"/></svg> Warning 2/3</span></td>
+                <td><span class="chip chip-accent"><svg class="ic ic-sm"><use href="#i-sparkle"/></svg> AI</span></td>
+                <td class="cell-reason">Targeted insult at @mia_kplays after a prior warning</td>
+              </tr>
+              <tr>
+                <td class="cell-time">22:12:40</td>
+                <td><span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#93C5FD,#3B82F6)">S</span>spamlord2000</span></td>
+                <td><span class="chip">Flood</span></td>
+                <td><span class="chip chip-warn"><svg class="ic ic-sm"><use href="#i-clock"/></svg> Timeout 5m</span></td>
+                <td><span class="chip">Local</span></td>
+                <td class="cell-reason">9 messages in 8 s (limit: 5 per 10 s)</td>
+              </tr>
+              <tr>
+                <td class="cell-time">22:11:02</td>
+                <td><span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#FCA5A5,#EF4444)">E</span>edgy_kiddo</span></td>
+                <td><span class="chip">Hate speech</span></td>
+                <td><span class="chip chip-danger"><svg class="ic ic-sm"><use href="#i-ban"/></svg> Banned</span></td>
+                <td><span class="chip chip-accent"><svg class="ic ic-sm"><use href="#i-sparkle"/></svg> AI</span></td>
+                <td class="cell-reason">Slur directed at a chatter (severity 3) — ladder bypassed</td>
+              </tr>
+              <tr>
+                <td class="cell-time">22:09:47</td>
+                <td><span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#86EFAC,#22C55E)">C</span>confused_carl</span></td>
+                <td><span class="chip">Toxicity</span></td>
+                <td><span class="chip chip-good"><svg class="ic ic-sm"><use href="#i-check"/></svg> Allowed</span></td>
+                <td><span class="chip chip-accent"><svg class="ic ic-sm"><use href="#i-sparkle"/></svg> AI</span></td>
+                <td class="cell-reason">Quoting another user to disagree — not an attack (confidence 0.88)</td>
+              </tr>
+              <tr>
+                <td class="cell-time">22:08:13</td>
+                <td><span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#C4B5FD,#8B5CF6)">M</span>meme_machine</span></td>
+                <td><span class="chip">Spam</span></td>
+                <td><span class="chip chip-danger"><svg class="ic ic-sm"><use href="#i-x"/></svg> Deleted</span></td>
+                <td><span class="chip">Local</span></td>
+                <td class="cell-reason">Same message repeated 4× in 60 s</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Review queue -->
+        <div class="col-stack">
+          <div class="card card-pad">
+            <div class="card-head" style="margin-bottom:4px">
+              <div class="card-title"><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg> Human review</div>
+              <span class="chip chip-warn">2 pending</span>
+            </div>
+            <div class="review-item">
+              <div class="row" style="justify-content:space-between">
+                <span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#94A3B8,#64748B)">D</span>old_pal_dan</span>
+                <span class="cell-time">22:10:12</span>
+              </div>
+              <div class="review-quote">“you absolute muppet lol”</div>
+              <span class="card-sub">Possible banter between regulars · confidence 0.41</span>
+              <div class="row">
+                <button class="btn btn-good btn-sm"><svg class="ic ic-sm"><use href="#i-check"/></svg> Approve</button>
+                <button class="btn btn-danger btn-sm"><svg class="ic ic-sm"><use href="#i-x"/></svg> Remove</button>
+              </div>
+            </div>
+            <div class="review-item">
+              <div class="row" style="justify-content:space-between">
+                <span class="cell-user"><span class="avatar avatar-sm" style="background:linear-gradient(135deg,#67E8F9,#06B6D4)">N</span>new_viewer42</span>
+                <span class="cell-time">22:06:55</span>
+              </div>
+              <div class="review-quote">“is this stream always this dead”</div>
+              <span class="card-sub">Borderline toxicity, no target · confidence 0.52</span>
+              <div class="row">
+                <button class="btn btn-good btn-sm"><svg class="ic ic-sm"><use href="#i-check"/></svg> Approve</button>
+                <button class="btn btn-danger btn-sm"><svg class="ic ic-sm"><use href="#i-x"/></svg> Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card syncbar">
+            <span class="chip chip-good"><span class="dot"></span> App v0.1.0</span>
+            <span class="chip"><svg class="ic ic-sm"><use href="#i-bolt"/></svg> EventSub listening</span>
+            <span class="chip"><svg class="ic ic-sm"><use href="#i-check"/></svg> Synced 12 s ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
