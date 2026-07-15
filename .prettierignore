@@ -1,0 +1,8 @@
+node_modules/
+.next/
+dist/
+out/
+build/
+design/screenshots/
+*.woff2
+package-lock.json

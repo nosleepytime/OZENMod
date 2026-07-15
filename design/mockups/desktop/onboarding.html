@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OZENMod Desktop — Onboarding</title>
+    <link rel="stylesheet" href="../shared/fonts/inter.css" />
+    <link rel="stylesheet" href="../shared/tokens.css" />
+    <link rel="stylesheet" href="../shared/components.css" />
+    <style>
+      .window {
+        width: 960px;
+      }
+      .ob-body {
+        display: flex;
+        min-height: 600px;
+      }
+      .ob-brand {
+        width: 330px;
+        padding: 34px 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        background:
+          radial-gradient(400px 300px at 20% 0%, rgba(124, 92, 255, 0.28), transparent 65%),
+          radial-gradient(300px 260px at 100% 100%, rgba(96, 165, 250, 0.12), transparent 60%),
+          var(--bg-deep);
+        border-right: 1px solid var(--border);
+      }
+      .ob-brand .lead {
+        font-size: 13px;
+      }
+      .ob-points {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: auto;
+      }
+      .ob-points .row {
+        gap: 10px;
+        align-items: flex-start;
+        font-size: 12.5px;
+        color: var(--text-2);
+      }
+      .ob-points .ic {
+        color: var(--good);
+        margin-top: 2px;
+        width: 14px;
+        height: 14px;
+      }
+      .ob-main {
+        flex: 1;
+        padding: 30px 40px 26px;
+        display: flex;
+        flex-direction: column;
+      }
+      .steps {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 30px;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-3);
+      }
+      .step-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+      }
+      .step.done .step-dot {
+        background: var(--good-soft);
+        border-color: rgba(52, 211, 153, 0.4);
+        color: var(--good);
+      }
+      .step.current {
+        color: var(--text);
+      }
+      .step.current .step-dot {
+        background: var(--accent-soft);
+        border-color: rgba(124, 92, 255, 0.45);
+        color: var(--accent-ink);
+      }
+      .step-line {
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      .code-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 22px;
+        border-radius: 14px;
+        margin: 18px 0 8px;
+        background: var(--surface-2);
+        border: 1px dashed var(--border-strong);
+        font-family: var(--mono);
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+      }
+      .waiting {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--text-3);
+        font-size: 12.5px;
+      }
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid var(--surface-3);
+        border-top-color: var(--accent);
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .ob-foot {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body class="desktop-backdrop">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="M12 3l7 3v5.5c0 4.6-3 7.9-7 9.5-4-1.6-7-4.9-7-9.5V6z" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
+        <symbol id="i-square" viewBox="0 0 24 24">
+          <rect x="5" y="5" width="14" height="14" rx="1.5" />
+        </symbol>
+        <symbol id="i-external" viewBox="0 0 24 24">
+          <path d="M14 4h6v6M20 4l-9 9M20 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1h5" />
+        </symbol>
+        <symbol id="i-twitch" viewBox="0 0 24 24">
+          <path
+            fill-rule="evenodd"
+            d="M4 2h17v12.5L16.5 19H13l-2.5 2.5V19H4V2zm7 4.5h2v5h-2v-5zm5 0h2v5h-2v-5z"
+          />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="window">
+      <div class="titlebar">
+        <span class="logo">
+          <span class="logo-mark"
+            ><svg class="ic ic-fill"><use href="#i-shield" style="fill: currentColor" /></svg
+          ></span>
+          <span class="logo-name">OZEN<b style="color: var(--accent-2)">Mod</b></span>
+        </span>
+        <div class="tb-controls">
+          <span class="tb-btn"
+            ><svg class="ic ic-sm"><use href="#i-minus" /></svg
+          ></span>
+          <span class="tb-btn"
+            ><svg class="ic ic-sm" style="width: 11px; height: 11px"><use href="#i-square" /></svg
+          ></span>
+          <span class="tb-btn tb-close"
+            ><svg class="ic ic-sm"><use href="#i-x" /></svg
+          ></span>
+        </div>
+      </div>
+
+      <div class="ob-body">
+        <!-- Brand panel -->
+        <div class="ob-brand">
+          <span class="logo" style="flex-direction: column; align-items: flex-start; gap: 14px">
+            <span class="logo-mark" style="width: 44px; height: 44px; border-radius: 13px"
+              ><svg class="ic ic-fill" style="width: 22px; height: 22px">
+                <use href="#i-shield" style="fill: currentColor" /></svg
+            ></span>
+            <span class="logo-name" style="font-size: 20px"
+              >OZEN<b style="color: var(--accent-2)">Mod</b></span
+            >
+          </span>
+          <p class="lead">AI moderation that runs on your computer and understands your chat.</p>
+          <div class="ob-points">
+            <span class="row"
+              ><svg class="ic"><use href="#i-check" /></svg> Free forever — no subscription, no
+              server</span
+            >
+            <span class="row"
+              ><svg class="ic"><use href="#i-check" /></svg> Context-aware decisions, always
+              explained</span
+            >
+            <span class="row"
+              ><svg class="ic"><use href="#i-check" /></svg> Your chat never leaves your
+              machine</span
+            >
+          </div>
+        </div>
+
+        <!-- Step area -->
+        <div class="ob-main">
+          <div class="steps">
+            <span class="step done"
+              ><span class="step-dot"
+                ><svg class="ic ic-sm"><use href="#i-check" /></svg
+              ></span>
+              Welcome</span
+            >
+            <span class="step-line"></span>
+            <span class="step current"><span class="step-dot">2</span> Connect Twitch</span>
+            <span class="step-line"></span>
+            <span class="step"><span class="step-dot">3</span> Ready</span>
+          </div>
+
+          <h1 style="font-size: 24px">Connect your Twitch account</h1>
+          <p class="dim" style="margin-top: 8px; font-size: 13.5px">
+            OZENMod uses Twitch's device flow — no password ever touches this app. You can connect
+            your own account or a dedicated bot account.
+          </p>
+
+          <div class="code-box">QXRV-PLMH</div>
+          <p class="muted" style="font-size: 12.5px; text-align: center">
+            Enter this code at <b class="dim">twitch.tv/activate</b>
+          </p>
+
+          <div class="row" style="margin-top: 20px; gap: 12px">
+            <button class="btn btn-twitch btn-lg" style="flex: 1">
+              <svg class="ic ic-fill"><use href="#i-twitch" /></svg> Open twitch.tv/activate
+              <svg class="ic ic-sm"><use href="#i-external" /></svg>
+            </button>
+          </div>
+
+          <div class="waiting" style="margin-top: 16px; justify-content: center">
+            <span class="spinner"></span> Waiting for authorization… the code expires in 14:32
+          </div>
+
+          <div class="ob-foot">
+            <button class="btn btn-outline btn-sm">← Back</button>
+            <span class="grow"></span>
+            <a href="#" style="font-size: 12.5px; color: var(--text-3); text-decoration: underline"
+              >Use a dedicated bot account instead</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "lib": ["ES2022"],
+    "types": ["node", "electron"],
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/main", "src/preload", "src/ipc-contract.ts", "electron.vite.config.ts"]
+}

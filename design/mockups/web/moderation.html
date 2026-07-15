@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moderation — OZENMod Dashboard</title>
+    <link rel="stylesheet" href="../shared/fonts/inter.css" />
+    <link rel="stylesheet" href="../shared/tokens.css" />
+    <link rel="stylesheet" href="../shared/components.css" />
+    <style>
+      .grid-main {
+        display: grid;
+        grid-template-columns: 1.9fr 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      .filterbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 14px 16px;
+      }
+      tr.selected td {
+        background: var(--accent-soft);
+      }
+      tr.selected td:first-child {
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+      .quote {
+        font-size: 13px;
+        color: var(--text-2);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-left: 2px solid var(--danger);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .ctx-line {
+        display: flex;
+        gap: 8px;
+        font-size: 12.5px;
+        padding: 5px 0;
+        color: var(--text-2);
+      }
+      .ctx-line b {
+        flex: none;
+      }
+      .pipeline {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .pipe-step {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12.5px;
+        padding: 9px 12px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        color: var(--text-2);
+      }
+      .pipe-step .ic {
+        width: 13px;
+        height: 13px;
+        flex: none;
+      }
+      .pager {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--border);
+        color: var(--text-3);
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="M12 3l7 3v5.5c0 4.6-3 7.9-7 9.5-4-1.6-7-4.9-7-9.5V6z" />
+        </symbol>
+        <symbol id="i-home" viewBox="0 0 24 24">
+          <path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5" />
+        </symbol>
+        <symbol id="i-list" viewBox="0 0 24 24">
+          <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+        </symbol>
+        <symbol id="i-sparkle" viewBox="0 0 24 24">
+          <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+          <path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
+        </symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+          <circle cx="15" cy="7" r="2.2" />
+          <circle cx="8" cy="12" r="2.2" />
+          <circle cx="17" cy="17" r="2.2" />
+        </symbol>
+        <symbol id="i-gear" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3.2" />
+          <path
+            d="M12 2.8v3M12 18.2v3M21.2 12h-3M5.8 12h-3M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1M18.5 18.5l-2.1-2.1M7.6 7.6L5.5 5.5"
+          />
+        </symbol>
+        <symbol id="i-download" viewBox="0 0 24 24">
+          <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+        </symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24">
+          <path d="M6 9.5a6 6 0 0112 0c0 4.8 1.8 6 1.8 6H4.2s1.8-1.2 1.8-6" />
+          <path d="M10.5 20a1.8 1.8 0 003 0" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24">
+          <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+          <circle cx="12" cy="12" r="2.8" />
+        </symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 7v5l3 2" />
+        </symbol>
+        <symbol id="i-ban" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M6 6l12 12" />
+        </symbol>
+        <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4" /></symbol>
+        <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="M20 20l-3.8-3.8" />
+        </symbol>
+        <symbol id="i-bolt" viewBox="0 0 24 24">
+          <path d="M13 2.5L4.5 14H11l-1.5 7.5L18 10h-6.5z" />
+        </symbol>
+        <symbol id="i-undo" viewBox="0 0 24 24">
+          <path d="M4 10h11a5 5 0 015 5v0a5 5 0 01-5 5H8" />
+          <path d="M8 6l-4 4 4 4" />
+        </symbol>
+        <symbol id="i-flag" viewBox="0 0 24 24">
+          <path d="M5 21V4" />
+          <path d="M5 5h13l-2.5 4L18 13H5" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="logo" href="#">
+          <span class="logo-mark"
+            ><svg class="ic ic-fill"><use href="#i-shield" style="fill: currentColor" /></svg
+          ></span>
+          <span class="logo-name">OZEN<b style="color: var(--accent-2)">Mod</b></span>
+        </a>
+        <div class="nav-label">Channel</div>
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-home" /></svg> Overview</a
+        >
+        <a class="nav-item active" href="#"
+          ><svg class="ic"><use href="#i-list" /></svg> Moderation</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-sparkle" /></svg> AI &amp; Providers</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-sliders" /></svg> Filters</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-gear" /></svg> Settings</a
+        >
+        <div class="nav-label">Resources</div>
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-download" /></svg> Desktop app</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-code" /></svg> Documentation</a
+        >
+        <div class="nav-spacer"></div>
+        <div class="nav-user">
+          <span class="avatar">P</span>
+          <div style="min-width: 0">
+            <b style="font-size: 13px; display: block">pixelforge</b
+            ><span style="font-size: 11px; color: var(--text-3)">Free plan</span>
+          </div>
+          <svg class="ic" style="margin-left: auto; color: var(--text-3)">
+            <use href="#i-chev" />
+          </svg>
+        </div>
+      </aside>
+
+      <div class="main">
+        <div class="topbar">
+          <span class="topbar-title">Moderation</span>
+          <span class="divider-v"></span>
+          <span class="chip chip-danger"><span class="dot pulse"></span> LIVE</span>
+          <span class="chip">#pixelforge</span>
+          <span class="grow"></span>
+          <span class="chip chip-good"><span class="dot"></span> Bot online · desktop app</span>
+          <button class="btn btn-primary btn-sm">
+            <svg class="ic ic-sm"><use href="#i-sparkle" /></svg> Ask AI
+          </button>
+          <button class="btn btn-ghost btn-sm" style="width: 34px; padding: 0">
+            <svg class="ic"><use href="#i-bell" /></svg>
+          </button>
+          <span class="avatar avatar-sm">P</span>
+        </div>
+
+        <div class="content">
+          <div class="card filterbar">
+            <span class="input input-search grow" style="max-width: 320px"
+              ><svg class="ic ic-sm"><use href="#i-search" /></svg> Search user or reason…</span
+            >
+            <span class="select">Category · All</span>
+            <span class="select">Action · All</span>
+            <span class="select">Source · All</span>
+            <span class="select">This session</span>
+            <span class="grow"></span>
+            <button class="btn btn-outline btn-sm">
+              <svg class="ic ic-sm"><use href="#i-download" /></svg> Export
+            </button>
+          </div>
+
+          <div class="grid-main">
+            <div class="card">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Category</th>
+                    <th>Action</th>
+                    <th>Source</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="cell-time">22:14:31</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #fcd34d, #f59e0b)"
+                          >G</span
+                        >grifter_joe</span
+                      >
+                    </td>
+                    <td><span class="chip">Scam link</span></td>
+                    <td>
+                      <span class="chip chip-danger"
+                        ><svg class="ic ic-sm"><use href="#i-ban" /></svg> Deleted + 10m</span
+                      >
+                    </td>
+                    <td><span class="chip">Local</span></td>
+                    <td class="cell-reason">
+                      URL shortener promising free bits — link policy: trusted only
+                    </td>
+                  </tr>
+                  <tr class="selected">
+                    <td class="cell-time">22:13:58</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #f9a8d4, #ec4899)"
+                          >X</span
+                        >xX_rager_Xx</span
+                      >
+                    </td>
+                    <td><span class="chip">Harassment</span></td>
+                    <td>
+                      <span class="chip chip-warn"
+                        ><svg class="ic ic-sm"><use href="#i-eye" /></svg> Warning 2/3</span
+                      >
+                    </td>
+                    <td>
+                      <span class="chip chip-accent"
+                        ><svg class="ic ic-sm"><use href="#i-sparkle" /></svg> AI</span
+                      >
+                    </td>
+                    <td class="cell-reason">
+                      Targeted insult at @mia_kplays after a prior warning
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">22:12:40</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #93c5fd, #3b82f6)"
+                          >S</span
+                        >spamlord2000</span
+                      >
+                    </td>
+                    <td><span class="chip">Flood</span></td>
+                    <td>
+                      <span class="chip chip-warn"
+                        ><svg class="ic ic-sm"><use href="#i-clock" /></svg> Timeout 5m</span
+                      >
+                    </td>
+                    <td><span class="chip">Local</span></td>
+                    <td class="cell-reason">9 messages in 8 s (limit: 5 per 10 s)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">22:11:02</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #fca5a5, #ef4444)"
+                          >E</span
+                        >edgy_kiddo</span
+                      >
+                    </td>
+                    <td><span class="chip">Hate speech</span></td>
+                    <td>
+                      <span class="chip chip-danger"
+                        ><svg class="ic ic-sm"><use href="#i-ban" /></svg> Banned</span
+                      >
+                    </td>
+                    <td>
+                      <span class="chip chip-accent"
+                        ><svg class="ic ic-sm"><use href="#i-sparkle" /></svg> AI</span
+                      >
+                    </td>
+                    <td class="cell-reason">
+                      Slur directed at a chatter (severity 3) — ladder bypassed
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">22:09:47</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #86efac, #22c55e)"
+                          >C</span
+                        >confused_carl</span
+                      >
+                    </td>
+                    <td><span class="chip">Toxicity</span></td>
+                    <td>
+                      <span class="chip chip-good"
+                        ><svg class="ic ic-sm"><use href="#i-check" /></svg> Allowed</span
+                      >
+                    </td>
+                    <td>
+                      <span class="chip chip-accent"
+                        ><svg class="ic ic-sm"><use href="#i-sparkle" /></svg> AI</span
+                      >
+                    </td>
+                    <td class="cell-reason">
+                      Quoting another user to disagree — not an attack (confidence 0.88)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">22:08:13</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #c4b5fd, #8b5cf6)"
+                          >M</span
+                        >meme_machine</span
+                      >
+                    </td>
+                    <td><span class="chip">Spam</span></td>
+                    <td>
+                      <span class="chip chip-danger"
+                        ><svg class="ic ic-sm"><use href="#i-x" /></svg> Deleted</span
+                      >
+                    </td>
+                    <td><span class="chip">Local</span></td>
+                    <td class="cell-reason">Same message repeated 4× in 60 s</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">22:05:33</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #fdba74, #f97316)"
+                          >C</span
+                        >caps_locker</span
+                      >
+                    </td>
+                    <td><span class="chip">Spam</span></td>
+                    <td>
+                      <span class="chip chip-danger"
+                        ><svg class="ic ic-sm"><use href="#i-x" /></svg> Deleted</span
+                      >
+                    </td>
+                    <td><span class="chip">Local</span></td>
+                    <td class="cell-reason">87% capitals across 120 characters (limit 70%)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">22:02:19</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #a5f3fc, #06b6d4)"
+                          >P</span
+                        >promo_pete</span
+                      >
+                    </td>
+                    <td><span class="chip">Advertising</span></td>
+                    <td>
+                      <span class="chip chip-danger"
+                        ><svg class="ic ic-sm"><use href="#i-x" /></svg> Deleted</span
+                      >
+                    </td>
+                    <td><span class="chip">Local</span></td>
+                    <td class="cell-reason">Unsolicited self-promotion (follow-for-follow)</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">21:58:41</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #94a3b8, #64748b)"
+                          >D</span
+                        >old_pal_dan</span
+                      >
+                    </td>
+                    <td><span class="chip">Toxicity</span></td>
+                    <td>
+                      <span class="chip chip-good"
+                        ><svg class="ic ic-sm"><use href="#i-check" /></svg> Allowed</span
+                      >
+                    </td>
+                    <td>
+                      <span class="chip chip-accent"
+                        ><svg class="ic ic-sm"><use href="#i-sparkle" /></svg> AI</span
+                      >
+                    </td>
+                    <td class="cell-reason">
+                      Friendly banter with emotes — no hostility toward a target
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="cell-time">21:55:07</td>
+                    <td>
+                      <span class="cell-user"
+                        ><span
+                          class="avatar avatar-sm"
+                          style="background: linear-gradient(135deg, #f0abfc, #d946ef)"
+                          >R</span
+                        >repeat_rita</span
+                      >
+                    </td>
+                    <td><span class="chip">Evasion</span></td>
+                    <td>
+                      <span class="chip chip-warn"
+                        ><svg class="ic ic-sm"><use href="#i-eye" /></svg> Warning 1/3</span
+                      >
+                    </td>
+                    <td><span class="chip">Local</span></td>
+                    <td class="cell-reason">Banned term matched after homoglyph folding</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="pager">
+                <span>Showing 1–10 of 96 actions this session</span>
+                <span class="grow"></span>
+                <button class="btn btn-outline btn-sm">← Previous</button>
+                <button class="btn btn-outline btn-sm">Next →</button>
+              </div>
+            </div>
+
+            <!-- Event detail -->
+            <div class="card card-pad">
+              <div class="card-head" style="margin-bottom: 10px">
+                <div class="card-title">Event detail</div>
+                <span class="chip chip-warn"
+                  ><svg class="ic ic-sm"><use href="#i-eye" /></svg> Warning 2/3</span
+                >
+              </div>
+              <div class="row" style="margin-bottom: 10px">
+                <span class="avatar" style="background: linear-gradient(135deg, #f9a8d4, #ec4899)"
+                  >X</span
+                >
+                <div>
+                  <b style="display: block">xX_rager_Xx</b
+                  ><span class="card-sub">First seen 34 min ago · 12 messages this stream</span>
+                </div>
+              </div>
+              <div class="quote" style="text-decoration: line-through">
+                you're trash mia go back to fortnite
+              </div>
+
+              <div class="nav-label" style="padding: 16px 0 6px">Context</div>
+              <div class="ctx-line">
+                <b style="color: #6bd3fb">mia_kplays</b> that boss fight was insane, clip it!!
+              </div>
+              <div class="ctx-line">
+                <b style="color: #f9a8d4">xX_rager_Xx</b> <s>mia you got carried as usual</s>
+                <span class="chip chip-warn" style="height: 19px; font-size: 10px">1/3</span>
+              </div>
+              <div class="ctx-line">
+                <b style="color: #86efac">new_viewer42</b> gg that was clean
+              </div>
+
+              <div class="nav-label" style="padding: 16px 0 6px">Decision path</div>
+              <div class="pipeline">
+                <div class="pipe-step">
+                  <svg class="ic" style="color: var(--text-3)"><use href="#i-bolt" /></svg> Local
+                  score 0.58 — inside ambiguity band (0.35–0.75)
+                </div>
+                <div class="pipe-step">
+                  <svg class="ic" style="color: var(--accent-2)"><use href="#i-sparkle" /></svg
+                  ><span>AI verdict: <b>warn</b> · harassment · severity 1 · confidence 0.83</span>
+                </div>
+                <div class="pipe-step">
+                  <svg class="ic" style="color: var(--warn)"><use href="#i-eye" /></svg> Ladder:
+                  strike 2/3 applied — message deleted, user warned in chat
+                </div>
+              </div>
+
+              <div class="note note-accent" style="margin-top: 14px">
+                <svg class="ic"><use href="#i-sparkle" /></svg>
+                <span
+                  >“Second targeted insult at the same chatter this stream, after a prior warning.
+                  Not banter: the target did not engage and the tone is demeaning.”</span
+                >
+              </div>
+
+              <div class="row" style="margin-top: 16px">
+                <button class="btn btn-outline btn-sm">
+                  <svg class="ic ic-sm"><use href="#i-undo" /></svg> Undo
+                </button>
+                <button class="btn btn-danger btn-sm">
+                  <svg class="ic ic-sm"><use href="#i-ban" /></svg> Ban user
+                </button>
+                <button class="btn btn-outline btn-sm">
+                  <svg class="ic ic-sm"><use href="#i-flag" /></svg> False positive
+                </button>
+              </div>
+              <p class="card-sub" style="margin-top: 12px">
+                Processed in 1.24 s · Provider: Pollinations · Marking as false positive tunes this
+                channel's thresholds.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI &amp; Providers — OZENMod Dashboard</title>
+    <link rel="stylesheet" href="../shared/fonts/inter.css" />
+    <link rel="stylesheet" href="../shared/tokens.css" />
+    <link rel="stylesheet" href="../shared/components.css" />
+    <style>
+      .providers-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .provider-card {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        position: relative;
+      }
+      .provider-card.active {
+        border-color: rgba(124, 92, 255, 0.5);
+        box-shadow:
+          0 0 0 1px rgba(124, 92, 255, 0.25),
+          var(--shadow-card);
+      }
+      .provider-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .provider-logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        font-weight: 800;
+        font-size: 13px;
+        color: var(--text-2);
+      }
+      .provider-card p {
+        font-size: 12px;
+        color: var(--text-3);
+        line-height: 1.55;
+      }
+      .provider-foot {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: auto;
+      }
+
+      .grid-two {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .band {
+        position: relative;
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+        display: flex;
+      }
+      .band i {
+        height: 100%;
+      }
+      .band-marker {
+        position: absolute;
+        top: -4px;
+        bottom: -4px;
+        width: 2px;
+        background: #fff;
+        border-radius: 2px;
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
+      }
+      .band-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--text-3);
+      }
+      .band-zone {
+        text-align: center;
+        flex: 1;
+      }
+
+      .cat-table td {
+        padding: 10px 14px;
+      }
+      .th-pill {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="M12 3l7 3v5.5c0 4.6-3 7.9-7 9.5-4-1.6-7-4.9-7-9.5V6z" />
+        </symbol>
+        <symbol id="i-home" viewBox="0 0 24 24">
+          <path d="M4 11l8-7 8 7M6.5 9.5V20h11V9.5" />
+        </symbol>
+        <symbol id="i-list" viewBox="0 0 24 24">
+          <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+        </symbol>
+        <symbol id="i-sparkle" viewBox="0 0 24 24">
+          <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+          <path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
+        </symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+          <circle cx="15" cy="7" r="2.2" />
+          <circle cx="8" cy="12" r="2.2" />
+          <circle cx="17" cy="17" r="2.2" />
+        </symbol>
+        <symbol id="i-gear" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3.2" />
+          <path
+            d="M12 2.8v3M12 18.2v3M21.2 12h-3M5.8 12h-3M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1M18.5 18.5l-2.1-2.1M7.6 7.6L5.5 5.5"
+          />
+        </symbol>
+        <symbol id="i-download" viewBox="0 0 24 24">
+          <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+        </symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24">
+          <path d="M6 9.5a6 6 0 0112 0c0 4.8 1.8 6 1.8 6H4.2s1.8-1.2 1.8-6" />
+          <path d="M10.5 20a1.8 1.8 0 003 0" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+        <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></symbol>
+        <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4" /></symbol>
+        <symbol id="i-key" viewBox="0 0 24 24">
+          <circle cx="8" cy="14.5" r="3.8" />
+          <path d="M11 11.5L20 3M16 5.5l3 3" />
+        </symbol>
+        <symbol id="i-cpu" viewBox="0 0 24 24">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
+          <rect x="10.2" y="10.2" width="3.6" height="3.6" />
+          <path d="M12 2.5V6M12 18v3.5M2.5 12H6M18 12h3.5" />
+        </symbol>
+        <symbol id="i-globe" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M3.5 12h17M12 3.5c2.8 2.8 2.8 14.2 0 17M12 3.5c-2.8 2.8-2.8 14.2 0 17" />
+        </symbol>
+        <symbol id="i-info" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 11v5M12 8h.01" />
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24">
+          <path d="M21 10a9 9 0 00-15-4.5L3 8M3 14a9 9 0 0015 4.5L21 16" />
+          <path d="M3 3v5h5M21 21v-5h-5" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="logo" href="#">
+          <span class="logo-mark"
+            ><svg class="ic ic-fill"><use href="#i-shield" style="fill: currentColor" /></svg
+          ></span>
+          <span class="logo-name">OZEN<b style="color: var(--accent-2)">Mod</b></span>
+        </a>
+        <div class="nav-label">Channel</div>
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-home" /></svg> Overview</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-list" /></svg> Moderation</a
+        >
+        <a class="nav-item active" href="#"
+          ><svg class="ic"><use href="#i-sparkle" /></svg> AI &amp; Providers</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-sliders" /></svg> Filters</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-gear" /></svg> Settings</a
+        >
+        <div class="nav-label">Resources</div>
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-download" /></svg> Desktop app</a
+        >
+        <a class="nav-item" href="#"
+          ><svg class="ic"><use href="#i-code" /></svg> Documentation</a
+        >
+        <div class="nav-spacer"></div>
+        <div class="nav-user">
+          <span class="avatar">P</span>
+          <div style="min-width: 0">
+            <b style="font-size: 13px; display: block">pixelforge</b
+            ><span style="font-size: 11px; color: var(--text-3)">Free plan</span>
+          </div>
+          <svg class="ic" style="margin-left: auto; color: var(--text-3)">
+            <use href="#i-chev" />
+          </svg>
+        </div>
+      </aside>
+
+      <div class="main">
+        <div class="topbar">
+          <span class="topbar-title">AI &amp; Providers</span>
+          <span class="divider-v"></span>
+          <span class="chip chip-danger"><span class="dot pulse"></span> LIVE</span>
+          <span class="chip">#pixelforge</span>
+          <span class="grow"></span>
+          <span class="chip chip-good"><span class="dot"></span> Bot online · desktop app</span>
+          <button class="btn btn-primary btn-sm">
+            <svg class="ic ic-sm"><use href="#i-sparkle" /></svg> Ask AI
+          </button>
+          <button class="btn btn-ghost btn-sm" style="width: 34px; padding: 0">
+            <svg class="ic"><use href="#i-bell" /></svg>
+          </button>
+          <span class="avatar avatar-sm">P</span>
+        </div>
+
+        <div class="content">
+          <!-- Providers -->
+          <div class="card-head" style="margin-bottom: 0">
+            <div>
+              <div class="card-title" style="font-size: 15px">Providers</div>
+              <div class="card-sub">
+                The engine escalates only ambiguous messages to the active provider. Keys are
+                entered in the desktop app and stored in your OS keychain — never uploaded.
+              </div>
+            </div>
+          </div>
+          <div class="providers-grid">
+            <div class="card provider-card active">
+              <div class="provider-head">
+                <span
+                  class="provider-logo"
+                  style="
+                    background: var(--accent-soft);
+                    color: var(--accent-2);
+                    border-color: rgba(124, 92, 255, 0.35);
+                  "
+                  ><svg class="ic"><use href="#i-sparkle" /></svg
+                ></span>
+                <div>
+                  <b>Pollinations</b>
+                  <div class="card-sub">Free tier default</div>
+                </div>
+                <span class="chip chip-good" style="margin-left: auto"
+                  ><span class="dot"></span> Active</span
+                >
+              </div>
+              <p>Anonymous free AI — no account, no API key, no cost. Ideal for getting started.</p>
+              <div class="row">
+                <span class="field-label" style="width: 52px">Model</span
+                ><span class="select grow">openai (default)</span>
+              </div>
+              <div class="provider-foot">
+                <span class="chip chip-good"
+                  ><svg class="ic ic-sm"><use href="#i-check" /></svg> Connected · 142 ms</span
+                >
+                <button class="btn btn-outline btn-sm" style="margin-left: auto">
+                  <svg class="ic ic-sm"><use href="#i-refresh" /></svg> Test
+                </button>
+              </div>
+            </div>
+
+            <div class="card provider-card">
+              <div class="provider-head">
+                <span class="provider-logo">AI</span>
+                <div>
+                  <b>OpenAI</b>
+                  <div class="card-sub">gpt-4o-mini</div>
+                </div>
+              </div>
+              <p>Use your own OpenAI API key for stronger reasoning on ambiguous messages.</p>
+              <div class="provider-foot">
+                <span class="chip"
+                  ><svg class="ic ic-sm"><use href="#i-key" /></svg> API key required</span
+                >
+                <button class="btn btn-ghost btn-sm" style="margin-left: auto">Configure</button>
+              </div>
+            </div>
+
+            <div class="card provider-card">
+              <div class="provider-head">
+                <span class="provider-logo">A</span>
+                <div>
+                  <b>Anthropic</b>
+                  <div class="card-sub">claude-haiku-4-5</div>
+                </div>
+              </div>
+              <p>Claude models via your Anthropic key — fast verdicts with strong nuance.</p>
+              <div class="provider-foot">
+                <span class="chip"
+                  ><svg class="ic ic-sm"><use href="#i-key" /></svg> API key required</span
+                >
+                <button class="btn btn-ghost btn-sm" style="margin-left: auto">Configure</button>
+              </div>
+            </div>
+
+            <div class="card provider-card">
+              <div class="provider-head">
+                <span class="provider-logo">G</span>
+                <div>
+                  <b>Google Gemini</b>
+                  <div class="card-sub">gemini-2.0-flash</div>
+                </div>
+              </div>
+              <p>Gemini's free API tier works well for moderate chat volumes.</p>
+              <div class="provider-foot">
+                <span class="chip"
+                  ><svg class="ic ic-sm"><use href="#i-key" /></svg> API key required</span
+                >
+                <button class="btn btn-ghost btn-sm" style="margin-left: auto">Configure</button>
+              </div>
+            </div>
+
+            <div class="card provider-card">
+              <div class="provider-head">
+                <span class="provider-logo"
+                  ><svg class="ic"><use href="#i-cpu" /></svg
+                ></span>
+                <div>
+                  <b>Ollama</b>
+                  <div class="card-sub">Local · offline</div>
+                </div>
+              </div>
+              <p>Run models on your own machine. Fully private — chat never leaves your PC.</p>
+              <div class="provider-foot">
+                <span class="chip"
+                  ><svg class="ic ic-sm"><use href="#i-check" /></svg> No key needed</span
+                >
+                <button class="btn btn-ghost btn-sm" style="margin-left: auto">
+                  Detect models
+                </button>
+              </div>
+            </div>
+
+            <div class="card provider-card">
+              <div class="provider-head">
+                <span class="provider-logo"
+                  ><svg class="ic"><use href="#i-globe" /></svg
+                ></span>
+                <div>
+                  <b>Custom endpoint</b>
+                  <div class="card-sub">OpenAI-compatible</div>
+                </div>
+              </div>
+              <p>Point OZENMod at any OpenAI-compatible URL — LM Studio, vLLM, your proxy.</p>
+              <div class="provider-foot">
+                <span class="chip">Base URL + optional key</span>
+                <button class="btn btn-ghost btn-sm" style="margin-left: auto">Configure</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-two">
+            <!-- Escalation -->
+            <div class="card card-pad">
+              <div class="card-head">
+                <div>
+                  <div class="card-title">Escalation &amp; sensitivity</div>
+                  <div class="card-sub">
+                    Local analysis decides most messages — the AI is called only inside the
+                    ambiguity band
+                  </div>
+                </div>
+              </div>
+
+              <div class="set-row" style="border-bottom: 0; padding-top: 0">
+                <div class="set-info">
+                  <b>Sensitivity preset</b
+                  ><span>How strict the local scoring is before escalation</span>
+                </div>
+                <span class="seg"
+                  ><span class="seg-item">Lenient</span><span class="seg-item active">Balanced</span
+                  ><span class="seg-item">Strict</span></span
+                >
+              </div>
+
+              <div style="padding: 6px 0 18px">
+                <div class="band">
+                  <i
+                    style="
+                      flex: 0 0 35%;
+                      background: linear-gradient(
+                        90deg,
+                        rgba(52, 211, 153, 0.5),
+                        rgba(52, 211, 153, 0.25)
+                      );
+                    "
+                  ></i>
+                  <i
+                    style="
+                      flex: 0 0 40%;
+                      background: linear-gradient(
+                        90deg,
+                        rgba(124, 92, 255, 0.45),
+                        rgba(124, 92, 255, 0.3)
+                      );
+                    "
+                  ></i>
+                  <i
+                    style="
+                      flex: 1;
+                      background: linear-gradient(
+                        90deg,
+                        rgba(248, 113, 113, 0.35),
+                        rgba(248, 113, 113, 0.5)
+                      );
+                    "
+                  ></i>
+                  <span class="band-marker" style="left: 35%"></span>
+                  <span class="band-marker" style="left: 75%"></span>
+                </div>
+                <div class="band-labels">
+                  <span class="band-zone" style="flex: 0 0 35%"
+                    >Allow locally · score &lt; 0.35</span
+                  >
+                  <span class="band-zone" style="flex: 0 0 40%">Ask the AI · 0.35 – 0.75</span>
+                  <span class="band-zone">Act locally · score &gt; 0.75</span>
+                </div>
+              </div>
+
+              <div class="set-row">
+                <div class="set-info">
+                  <b>AI budget</b
+                  ><span>Maximum AI calls per minute — above it, the fallback applies</span>
+                </div>
+                <span class="stepper"><button>−</button><span>20</span><button>+</button></span>
+              </div>
+              <div class="set-row">
+                <div class="set-info">
+                  <b>When the AI is unavailable</b
+                  ><span>Applies on outage, timeout or exhausted budget</span>
+                </div>
+                <span class="select">Conservative local mode</span>
+              </div>
+              <div class="set-row">
+                <div class="set-info">
+                  <b>Cache identical messages</b
+                  ><span>Reuse verdicts for repeated text (5 minutes) — cuts copypasta cost</span>
+                </div>
+                <span class="toggle on"></span>
+              </div>
+              <div class="set-row">
+                <div class="set-info">
+                  <b>Send context window</b
+                  ><span>Include the last 10 messages so the AI can judge irony and targets</span>
+                </div>
+                <span class="toggle on"></span>
+              </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="card">
+              <div class="card-head" style="padding: 18px 18px 0; margin-bottom: 4px">
+                <div>
+                  <div class="card-title">Categories</div>
+                  <div class="card-sub">Which categories are enforced, and when the AI assists</div>
+                </div>
+              </div>
+              <table class="table cat-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Detect</th>
+                    <th>AI assist</th>
+                    <th>Threshold</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Harassment &amp; insults</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="chip th-pill">0.55</span></td>
+                  </tr>
+                  <tr>
+                    <td>Hate &amp; discrimination</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="chip th-pill">0.40</span></td>
+                  </tr>
+                  <tr>
+                    <td>Threats &amp; violence</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="chip th-pill">0.35</span></td>
+                  </tr>
+                  <tr>
+                    <td>Sexual content</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="chip th-pill">0.50</span></td>
+                  </tr>
+                  <tr>
+                    <td>Spam &amp; flood</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle"></span></td>
+                    <td><span class="chip th-pill">0.65</span></td>
+                  </tr>
+                  <tr>
+                    <td>Scam &amp; phishing</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="chip th-pill">0.45</span></td>
+                  </tr>
+                  <tr>
+                    <td>Advertising</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle"></span></td>
+                    <td><span class="chip th-pill">0.70</span></td>
+                  </tr>
+                  <tr>
+                    <td>General toxicity</td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="toggle on"></span></td>
+                    <td><span class="chip th-pill">0.60</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="note" style="margin: 14px 18px 18px">
+                <svg class="ic"><use href="#i-info" /></svg>
+                <span
+                  >Severe content (explicit threats, slurs, credential phishing) always triggers
+                  instant action, regardless of thresholds.</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
