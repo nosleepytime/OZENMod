@@ -5,7 +5,7 @@ The engine that decides what happens to every chat message. It is **local-first*
 (only ambiguous messages are escalated), and **explainable** (every decision carries
 an English reason).
 
-This is *not* a blacklist bot. Word lists are one small stage of a pipeline that
+This is _not_ a blacklist bot. Word lists are one small stage of a pipeline that
 reasons about normalization tricks, context, targets, history and intent.
 
 ---
@@ -16,7 +16,7 @@ reasons about normalization tricks, context, targets, history and intent.
 
 - Correct decisions on obvious content in **< 5 ms**, without any network call.
 - Context-aware judgement on ambiguous content via AI, with strict cost control.
-- Zero silent actions: feed, logs and dashboard always show *why*.
+- Zero silent actions: feed, logs and dashboard always show _why_.
 - Fairness mechanics: warnings before sanctions (configurable), exemptions,
   severity bypass only for extreme content.
 
@@ -77,16 +77,16 @@ Matching in S2/S3 runs against the original **and** the normalized candidates, s
 
 ### S2 — Deterministic rules (hard, instant)
 
-| Rule family | Behavior |
-| --- | --- |
-| Streamer banned terms / regex | Each entry has a severity (low → strike, high → instant action). Matched against normalized candidates. |
-| Link policy | `block-all` / `trusted-list` / `allow`. Suspicious TLDs, IP-literals, URL shorteners and known scam patterns ("free bits", "become famous") escalate severity. Permitted for subs/regulars if configured. |
-| Flood / rate | Sliding window per user (N messages / T seconds) and burst detection across users (raid heuristic → conservative mode). |
-| Repetition / duplicates | Near-duplicate detection (SimHash) of the user's recent messages and copypasta bursts across users. |
-| Composition | Caps ratio, emote count, symbol ratio, mention count, message length — all thresholds configurable. |
+| Rule family                   | Behavior                                                                                                                                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Streamer banned terms / regex | Each entry has a severity (low → strike, high → instant action). Matched against normalized candidates.                                                                                                   |
+| Link policy                   | `block-all` / `trusted-list` / `allow`. Suspicious TLDs, IP-literals, URL shorteners and known scam patterns ("free bits", "become famous") escalate severity. Permitted for subs/regulars if configured. |
+| Flood / rate                  | Sliding window per user (N messages / T seconds) and burst detection across users (raid heuristic → conservative mode).                                                                                   |
+| Repetition / duplicates       | Near-duplicate detection (SimHash) of the user's recent messages and copypasta bursts across users.                                                                                                       |
+| Composition                   | Caps ratio, emote count, symbol ratio, mention count, message length — all thresholds configurable.                                                                                                       |
 
 Hard hits (severity ≥ instant) go straight to S6 with a deterministic reason like
-*"Blocked link (URL shortener) — link policy: trusted list only"*.
+_"Blocked link (URL shortener) — link policy: trusted list only"_.
 
 ### S3 — Heuristic scoring (fast classifier)
 
@@ -107,7 +107,7 @@ Hard hits (severity ≥ instant) go straight to S6 with a deterministic reason l
   between regulars, borderline threat vs. gaming trash talk) — unless the AI
   budget is exhausted.
 - **AI budget**: max calls/minute (default 20) with a small queue; over budget →
-  the *fallback policy* applies (`conservative-local`: treat band as "review" for
+  the _fallback policy_ applies (`conservative-local`: treat band as "review" for
   high categories, allow for low ones).
 - **Response cache**: identical normalized text from the same user within 5 min
   reuses the previous verdict (copypasta-friendly).
@@ -151,15 +151,15 @@ Maps `(verdict, channel policy, user session state)` to a final action:
 
 ## 4. Decision types (all explainable)
 
-| Decision | Effect | Example logged reason |
-| --- | --- | --- |
-| **Allow** | Nothing (majority of messages) | *"Clean (aggregate 0.04)"* — feed shows allowed messages dimmed |
-| **Ignore** | Nothing + suppress repeated identical alerts | *"Duplicate of an event already actioned 12 s ago"* |
-| **Delete** | Remove the single message | *"Advertising: unsolicited follow-for-follow promotion"* |
-| **Warn** | Delete + chat warning `@user warning 1/3: <reason>` (or native Twitch warning) | *"Targeted insult toward @viewer — strike 1/3"* |
-| **Timeout** | Delete + timeout N seconds | *"Repeated harassment after warning — strike 3/3, timeout 30 min"* |
-| **Ban** | Permanent ban | *"Explicit threat of violence (severity 3) — immediate ban"* |
-| **Review** | Queue for human decision | *"Possible sarcasm between regulars — confidence 0.41, needs human eyes"* |
+| Decision    | Effect                                                                         | Example logged reason                                                     |
+| ----------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| **Allow**   | Nothing (majority of messages)                                                 | _"Clean (aggregate 0.04)"_ — feed shows allowed messages dimmed           |
+| **Ignore**  | Nothing + suppress repeated identical alerts                                   | _"Duplicate of an event already actioned 12 s ago"_                       |
+| **Delete**  | Remove the single message                                                      | _"Advertising: unsolicited follow-for-follow promotion"_                  |
+| **Warn**    | Delete + chat warning `@user warning 1/3: <reason>` (or native Twitch warning) | _"Targeted insult toward @viewer — strike 1/3"_                           |
+| **Timeout** | Delete + timeout N seconds                                                     | _"Repeated harassment after warning — strike 3/3, timeout 30 min"_        |
+| **Ban**     | Permanent ban                                                                  | _"Explicit threat of violence (severity 3) — immediate ban"_              |
+| **Review**  | Queue for human decision                                                       | _"Possible sarcasm between regulars — confidence 0.41, needs human eyes"_ |
 
 ## 5. Warning ladder
 
@@ -179,30 +179,30 @@ temporary data by design and never accumulate.
 
 ## 6. Categories & default severities
 
-| Category | Examples | Default outcome (balanced preset) |
-| --- | --- | --- |
-| Harassment / insults | targeted name-calling, dogpiling | ladder |
-| Hate / discrimination | slurs, identity attacks | severity 3 → 24 h timeout or ban |
-| Threats / violence | "I will find you…" | severity 3 → ban |
-| Sexual content | explicit remarks, minors ⇒ always severity 3 | ladder / instant |
-| Spam / flood | repeated messages, caps walls, emote walls | delete, ladder on repeat |
-| Advertising | "follow my channel", referral links | delete |
-| Scam / phishing | "free bits", fake giveaways, shady shorteners | delete + timeout, severity 3 if credential-phishing |
-| Evasion | tricks defeated by S1 (leet/homoglyph/spacing) | treated as the underlying category, +1 severity |
-| Toxicity (general) | non-targeted vulgarity above channel tolerance | configurable: allow / delete / ladder |
+| Category              | Examples                                       | Default outcome (balanced preset)                   |
+| --------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| Harassment / insults  | targeted name-calling, dogpiling               | ladder                                              |
+| Hate / discrimination | slurs, identity attacks                        | severity 3 → 24 h timeout or ban                    |
+| Threats / violence    | "I will find you…"                             | severity 3 → ban                                    |
+| Sexual content        | explicit remarks, minors ⇒ always severity 3   | ladder / instant                                    |
+| Spam / flood          | repeated messages, caps walls, emote walls     | delete, ladder on repeat                            |
+| Advertising           | "follow my channel", referral links            | delete                                              |
+| Scam / phishing       | "free bits", fake giveaways, shady shorteners  | delete + timeout, severity 3 if credential-phishing |
+| Evasion               | tricks defeated by S1 (leet/homoglyph/spacing) | treated as the underlying category, +1 severity     |
+| Toxicity (general)    | non-targeted vulgarity above channel tolerance | configurable: allow / delete / ladder               |
 
 Every category can be toggled and its threshold tuned per channel
 (`/dashboard/ai` + desktop settings).
 
 ## 7. Performance targets
 
-| Metric | Target |
-| --- | --- |
-| Local pipeline latency (S0–S4, p99) | < 5 ms |
-| Share of messages resolved without AI | ≥ 95 % (typical channels ≥ 98 %) |
-| AI soft/hard timeout | 2 s / 5 s |
-| Action round-trip (message → Twitch action, with AI) | < 3 s p95 |
-| Memory (10k-message context churn) | < 100 MB in the app |
+| Metric                                               | Target                           |
+| ---------------------------------------------------- | -------------------------------- |
+| Local pipeline latency (S0–S4, p99)                  | < 5 ms                           |
+| Share of messages resolved without AI                | ≥ 95 % (typical channels ≥ 98 %) |
+| AI soft/hard timeout                                 | 2 s / 5 s                        |
+| Action round-trip (message → Twitch action, with AI) | < 3 s p95                        |
+| Memory (10k-message context churn)                   | < 100 MB in the app              |
 
 ## 8. Manual actions — the AI Assistant
 
@@ -216,23 +216,39 @@ trail, one warning ladder and one undo model.
 ```ts
 interface CommandIntent {
   action:
-    | "ban" | "unban" | "timeout" | "untimeout"
-    | "warn" | "unwarn" | "clear_strikes"
-    | "delete_messages" | "purge_user"
-    | "approve_review" | "remove_review"
-    | "add_banned_term" | "remove_banned_term"
-    | "add_trusted_domain" | "remove_trusted_domain"
-    | "set_link_policy" | "set_sensitivity" | "toggle_category" | "set_ai_budget"
-    | "exempt_user" | "unexempt_user"
-    | "query_user" | "query_stats" | "query_actions"
-    | "undo_last" | "unknown";
-  target?: string;              // Twitch login, resolved case-insensitively
-  durationSeconds?: number;     // timeouts
-  reason?: string;              // optional everywhere; default provided when absent
+    | 'ban'
+    | 'unban'
+    | 'timeout'
+    | 'untimeout'
+    | 'warn'
+    | 'unwarn'
+    | 'clear_strikes'
+    | 'delete_messages'
+    | 'purge_user'
+    | 'approve_review'
+    | 'remove_review'
+    | 'add_banned_term'
+    | 'remove_banned_term'
+    | 'add_trusted_domain'
+    | 'remove_trusted_domain'
+    | 'set_link_policy'
+    | 'set_sensitivity'
+    | 'toggle_category'
+    | 'set_ai_budget'
+    | 'exempt_user'
+    | 'unexempt_user'
+    | 'query_user'
+    | 'query_stats'
+    | 'query_actions'
+    | 'undo_last'
+    | 'unknown';
+  target?: string; // Twitch login, resolved case-insensitively
+  durationSeconds?: number; // timeouts
+  reason?: string; // optional everywhere; default provided when absent
   args?: Record<string, string>;
-  needsConfirmation: boolean;   // forced true for tier-2 actions
-  confidence: number;           // parser confidence 0..1
-  reply: string;                // assistant's English response shown in the panel
+  needsConfirmation: boolean; // forced true for tier-2 actions
+  confidence: number; // parser confidence 0..1
+  reply: string; // assistant's English response shown in the panel
 }
 ```
 
@@ -243,10 +259,10 @@ the AI is unavailable.
 
 ### 8.2 Risk tiers
 
-| Tier | Actions | Behavior |
-| --- | --- | --- |
+| Tier           | Actions                                                                                                                        | Behavior                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | 1 — reversible | warn, unwarn, clear strikes, timeout ≤ 24 h, untimeout, unban, delete/purge, review decisions, rule/sensitivity edits, queries | Execute immediately; result card with one-click **Undo** (inverse op stored per command) |
-| 2 — heavy | permanent ban, timeout > 24 h, mass actions (all-user strike resets), bulk term imports | Parsed card shown first; requires explicit **Confirm** |
+| 2 — heavy      | permanent ban, timeout > 24 h, mass actions (all-user strike resets), bulk term imports                                        | Parsed card shown first; requires explicit **Confirm**                                   |
 
 An "always ask before executing" toggle upgrades everything to tier 2. Ambiguous
 parses (confidence < 0.7, unknown target) never execute — the assistant asks a

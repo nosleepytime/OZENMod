@@ -59,11 +59,11 @@ neither:
 
 ## 4. The three surfaces
 
-| Surface | Role | Runs on |
-| --- | --- | --- |
-| **Website + dashboard** | Marketing, downloads, sign-in, remote configuration, statistics, moderation history | Vercel (free) |
-| **Desktop app** | Hosts the bot during streams, local control room, logs, settings | Streamer's computer (Windows/macOS) |
-| **The bot** | IRC chat client + moderation engine + AI escalation | Inside the desktop app (free tier) |
+| Surface                 | Role                                                                                | Runs on                             |
+| ----------------------- | ----------------------------------------------------------------------------------- | ----------------------------------- |
+| **Website + dashboard** | Marketing, downloads, sign-in, remote configuration, statistics, moderation history | Vercel (free)                       |
+| **Desktop app**         | Hosts the bot during streams, local control room, logs, settings                    | Streamer's computer (Windows/macOS) |
+| **The bot**             | IRC chat client + moderation engine + AI escalation                                 | Inside the desktop app (free tier)  |
 
 Settings are shared: change a rule on the dashboard while live and the running bot
 picks it up within a minute; change it in the app and the dashboard reflects it.
@@ -76,37 +76,38 @@ Next.js app, dark theme by default, fully responsive.
 
 ### 5.1 Public pages
 
-| Route | Page | Purpose / key content |
-| --- | --- | --- |
-| `/` | **Landing** | Hero with value proposition, live-looking product preview, feature grid, "How it works" (3 steps), AI providers strip, Free vs Premium comparison, FAQ, final call to action, footer. |
-| `/download` | **Download** | Platform detection, Windows `.exe` / macOS `.dmg` buttons (GitHub Releases), system requirements, install notes (unsigned-build instructions), checksums link. |
-| `/login` | **Sign in** | Single "Continue with Twitch" action, short scope explanation, links to privacy/terms. |
-| `/auth/callback` | OAuth callback | Spinner + error states (denied, expired, network). Redirects to `/dashboard`. |
-| `/privacy` | Privacy policy | What we store (almost nothing), retention, deletion. |
-| `/terms` | Terms of use | Standard OSS terms. |
-| `/404`, `/500` | Error pages | Branded, helpful, with a way back. |
+| Route            | Page           | Purpose / key content                                                                                                                                                                 |
+| ---------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`              | **Landing**    | Hero with value proposition, live-looking product preview, feature grid, "How it works" (3 steps), AI providers strip, Free vs Premium comparison, FAQ, final call to action, footer. |
+| `/download`      | **Download**   | Platform detection, Windows `.exe` / macOS `.dmg` buttons (GitHub Releases), system requirements, install notes (unsigned-build instructions), checksums link.                        |
+| `/login`         | **Sign in**    | Single "Continue with Twitch" action, short scope explanation, links to privacy/terms.                                                                                                |
+| `/auth/callback` | OAuth callback | Spinner + error states (denied, expired, network). Redirects to `/dashboard`.                                                                                                         |
+| `/privacy`       | Privacy policy | What we store (almost nothing), retention, deletion.                                                                                                                                  |
+| `/terms`         | Terms of use   | Standard OSS terms.                                                                                                                                                                   |
+| `/404`, `/500`   | Error pages    | Branded, helpful, with a way back.                                                                                                                                                    |
 
 ### 5.2 Dashboard pages (authenticated)
 
 Persistent left sidebar (Overview, Moderation, AI & Providers, Filters, Settings) +
 top bar (channel identity, live status, session timer, bot status, account menu).
 
-| Route | Page | Purpose / key content |
-| --- | --- | --- |
-| `/dashboard` | **Overview** | Stat tiles (messages analyzed, actions taken, AI calls + % of messages, chatters warned), chat activity chart, "resolved locally vs AI" meter, actions breakdown, recent actions table, human-review queue, bot/app status card. |
-| `/dashboard/moderation` | **Moderation** | Filterable event history (search, category, action, source), event detail panel with full explanation, context and confidence; undo / ban / mark-false-positive actions; pagination. |
-| `/dashboard/ai` | **AI & Providers** | Provider cards (Pollinations default-free, OpenAI, Anthropic, Gemini, Ollama, Custom), active model, connection test, sensitivity (lenient/balanced/strict), category toggles + thresholds, AI budget (max calls/min), fallback behavior. |
-| `/dashboard/filters` | **Filters** | Banned terms & regex manager (with severity), link policy (block all / trusted list / allow), trusted domains, spam & flood thresholds (caps %, emote %, repetition, rate), exemptions (mods, VIPs, subscribers, regulars). |
-| `/dashboard/settings` | **Settings** | Channel & bot identity, warning ladder editor (see §8.3), timeout durations, permanent-vs-session data explanation, notifications, data & privacy (snippet storage toggle, delete-all-data), danger zone (disconnect Twitch). |
+| Route                   | Page               | Purpose / key content                                                                                                                                                                                                                     |
+| ----------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/dashboard`            | **Overview**       | Stat tiles (messages analyzed, actions taken, AI calls + % of messages, chatters warned), chat activity chart, "resolved locally vs AI" meter, actions breakdown, recent actions table, human-review queue, bot/app status card.          |
+| `/dashboard/moderation` | **Moderation**     | Filterable event history (search, category, action, source), event detail panel with full explanation, context and confidence; undo / ban / mark-false-positive actions; pagination.                                                      |
+| `/dashboard/ai`         | **AI & Providers** | Provider cards (Pollinations default-free, OpenAI, Anthropic, Gemini, Ollama, Custom), active model, connection test, sensitivity (lenient/balanced/strict), category toggles + thresholds, AI budget (max calls/min), fallback behavior. |
+| `/dashboard/filters`    | **Filters**        | Banned terms & regex manager (with severity), link policy (block all / trusted list / allow), trusted domains, spam & flood thresholds (caps %, emote %, repetition, rate), exemptions (mods, VIPs, subscribers, regulars).               |
+| `/dashboard/settings`   | **Settings**       | Channel & bot identity, warning ladder editor (see §8.3), timeout durations, permanent-vs-session data explanation, notifications, data & privacy (snippet storage toggle, delete-all-data), danger zone (disconnect Twitch).             |
 
 In addition to the pages, every dashboard page exposes the **AI Assistant** —
 an **Ask AI** button in the top bar (shortcut `Ctrl/Cmd+K`) that slides a panel in
-from the right. The streamer moderates in plain English: *"timeout spamlord2000
-for 10 min, he keeps spamming"*, *"remove xX_rager_Xx's warning"*, *"ban
-grifter_joe"*, *"who did I ban today?"*. See §6.3 for the full capability list
+from the right. The streamer moderates in plain English: _"timeout spamlord2000
+for 10 min, he keeps spamming"_, _"remove xX_rager_Xx's warning"_, _"ban
+grifter_joe"_, _"who did I ban today?"_. See §6.3 for the full capability list
 and [MODERATION.md §8](./MODERATION.md) for the execution model.
 
 Notes:
+
 - API keys for BYO providers are **never entered on the website** — they stay on the
   streamer's machine (see [SECURITY.md](./SECURITY.md)). The dashboard shows which
   provider is active but key entry happens in the desktop app.
@@ -119,13 +120,13 @@ Electron app (Windows NSIS installer, macOS DMG), tray-capable, dark theme.
 
 ### 6.1 Windows & views
 
-| View | Purpose / key content |
-| --- | --- |
-| **Onboarding wizard** | 3 steps — ① Welcome & what the app does, ② Connect Twitch via device code (`twitch.tv/activate`, code shown big, "waiting for authorization…" state, optional dedicated bot account), ③ Ready — channel confirmed, defaults applied, "Open dashboard" link. Shown on first run only. |
-| **Control Room (main)** | Status hero: protection state, channel, session timer, Twitch / AI / EventSub health chips; big **Start bot / Stop bot** button; quick stats (messages, actions, AI calls, review queue); live moderation feed (chat events with inline decisions and reasons); human-review card with Approve/Remove; system card (CPU, memory, latency, version, update state). |
-| **Logs** | Console-style, filterable by level (Info, Action, AI, Warning, Error), search, auto-scroll toggle, export to file. Local only. |
-| **Settings** | Tabs: **General** (launch at login, auto-start bot when stream goes live, minimize to tray, desktop notifications, update channel + check now), **Moderation** (same rule editor as dashboard, kept in sync), **AI** (provider picker, model, API key entry stored in OS keychain, test connection), **Advanced** (log retention, local data folder, diagnostics). |
-| **About** | Version, changelog link, licenses, credits, links to GitHub/docs. |
+| View                    | Purpose / key content                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Onboarding wizard**   | 3 steps — ① Welcome & what the app does, ② Connect Twitch via device code (`twitch.tv/activate`, code shown big, "waiting for authorization…" state, optional dedicated bot account), ③ Ready — channel confirmed, defaults applied, "Open dashboard" link. Shown on first run only.                                                                               |
+| **Control Room (main)** | Status hero: protection state, channel, session timer, Twitch / AI / EventSub health chips; big **Start bot / Stop bot** button; quick stats (messages, actions, AI calls, review queue); live moderation feed (chat events with inline decisions and reasons); human-review card with Approve/Remove; system card (CPU, memory, latency, version, update state).  |
+| **Logs**                | Console-style, filterable by level (Info, Action, AI, Warning, Error), search, auto-scroll toggle, export to file. Local only.                                                                                                                                                                                                                                     |
+| **Settings**            | Tabs: **General** (launch at login, auto-start bot when stream goes live, minimize to tray, desktop notifications, update channel + check now), **Moderation** (same rule editor as dashboard, kept in sync), **AI** (provider picker, model, API key entry stored in OS keychain, test connection), **Advanced** (log retention, local data folder, diagnostics). |
+| **About**               | Version, changelog link, licenses, credits, links to GitHub/docs.                                                                                                                                                                                                                                                                                                  |
 
 ### 6.2 AI Assistant (desktop)
 
@@ -138,15 +139,15 @@ bot — no round-trip — so it is the fastest way to act mid-stream.
 The assistant turns plain-English requests into moderation actions. Full command
 surface (reasons always optional — the assistant fills a sensible one, or none):
 
-| Group | Commands |
-| --- | --- |
-| Users — punish | ban (permanent), timeout (any duration), warn (adds a ladder strike), delete a user's last message(s), purge a user's recent messages |
-| Users — forgive | unban, untimeout (lift an active timeout), remove a warning / clear one or all strikes, approve a held message |
-| Review queue | approve or remove pending review items ("approve dan's message") |
-| Rules | add/remove banned terms, add/remove trusted domains, change link policy, toggle categories, set sensitivity (lenient/balanced/strict), adjust AI budget |
-| Exemptions | exempt or un-exempt a user, VIPs, subscribers |
-| Queries | a user's strikes and history this stream, session stats, recent bans/timeouts, "why was X actioned?" |
-| Meta | undo the last action, "always ask before executing" toggle, `/` slash-syntax fallback that works even without AI |
+| Group           | Commands                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Users — punish  | ban (permanent), timeout (any duration), warn (adds a ladder strike), delete a user's last message(s), purge a user's recent messages                   |
+| Users — forgive | unban, untimeout (lift an active timeout), remove a warning / clear one or all strikes, approve a held message                                          |
+| Review queue    | approve or remove pending review items ("approve dan's message")                                                                                        |
+| Rules           | add/remove banned terms, add/remove trusted domains, change link policy, toggle categories, set sensitivity (lenient/balanced/strict), adjust AI budget |
+| Exemptions      | exempt or un-exempt a user, VIPs, subscribers                                                                                                           |
+| Queries         | a user's strikes and history this stream, session stats, recent bans/timeouts, "why was X actioned?"                                                    |
+| Meta            | undo the last action, "always ask before executing" toggle, `/` slash-syntax fallback that works even without AI                                        |
 
 Safety model (details in [MODERATION.md §8](./MODERATION.md)):
 
@@ -177,6 +178,7 @@ Safety model (details in [MODERATION.md §8](./MODERATION.md)):
 ## 7. Full feature list
 
 ### Moderation engine
+
 - Real-time analysis of every chat message (target: < 5 ms local decision).
 - Context-aware AI escalation for ambiguous messages only.
 - Detects: insults, harassment, threats, discrimination/hate, sexual content,
@@ -190,6 +192,7 @@ Safety model (details in [MODERATION.md §8](./MODERATION.md)):
   exemptions, cooldowns, first-time-chatter sensitivity.
 
 ### AI system
+
 - Modular providers: Pollinations (default, free, keyless), OpenAI, Anthropic,
   Gemini, Ollama (local), custom OpenAI-compatible endpoint.
 - Strict JSON verdict contract, response validation, timeouts, retry, circuit
@@ -197,6 +200,7 @@ Safety model (details in [MODERATION.md §8](./MODERATION.md)):
 - AI budget controls (max calls/minute) and live "resolved locally vs AI" metric.
 
 ### Desktop app
+
 - Twitch device-code sign-in (streamer account or dedicated bot account).
 - One-click start/stop, auto start/stop on stream online/offline.
 - Live feed with decisions and reasons, human-review queue, logs, stats.
@@ -204,6 +208,7 @@ Safety model (details in [MODERATION.md §8](./MODERATION.md)):
 - Auto-updates from GitHub Releases; tray mode; desktop notifications.
 
 ### AI Assistant (command sidebar)
+
 - Right-side panel on every dashboard page and in the desktop app (`Ctrl/Cmd+K`).
 - Plain-English moderation: ban/unban, timeout/untimeout, warn/unwarn, clear
   strikes, delete/purge messages, review decisions, rule & sensitivity changes,
@@ -214,11 +219,13 @@ Safety model (details in [MODERATION.md §8](./MODERATION.md)):
   unavailable.
 
 ### Website & dashboard
+
 - Twitch sign-in, live session view, statistics, moderation history with
   explanations, full rule configuration, provider selection, data controls.
 - Download page with platform detection and checksums.
 
 ### Platform & quality
+
 - 100% TypeScript strict, ESLint + Prettier, tests for the engine's rule stages.
 - Open source: README, CONTRIBUTING, LICENSE (MIT), CHANGELOG, issue & PR templates.
 - GitHub Actions: CI on every PR; release workflow builds Windows + macOS
@@ -276,7 +283,7 @@ Severe categories (threats, doxxing, slurs, scam links) skip the ladder.
 4. Step 3: defaults applied ("Balanced" sensitivity, Mode A ladder 3 strikes,
    links blocked for non-subs). App lands on Control Room, bot **idle**.
 5. User clicks **Start bot** (or enables auto-start). Status hero turns green:
-   *Protecting #channel*.
+   _Protecting #channel_.
 
 ### 9.2 Daily stream session
 
@@ -330,14 +337,14 @@ Severe categories (threats, doxxing, slurs, scam links) skip the ladder.
 ### 9.8 AI Assistant command (dashboard, mid-stream)
 
 1. A troll floods chat; the streamer's mod opens the dashboard, hits **Ask AI**
-   (`Ctrl/Cmd+K`) and types *"timeout spamlord2000 30 min, discord spam"*.
+   (`Ctrl/Cmd+K`) and types _"timeout spamlord2000 30 min, discord spam"_.
 2. The command is queued to the running bot, which parses it into a structured
    intent, executes the timeout via Twitch, and reports back — the panel shows the
-   action card *Timeout · spamlord2000 · 30 min* with **Undo** (round-trip ≤ ~4 s;
+   action card _Timeout · spamlord2000 · 30 min_ with **Undo** (round-trip ≤ ~4 s;
    instant when typed in the desktop app).
-3. *"ban grifter_joe"* → the parsed **Permanent ban** card comes back with
+3. _"ban grifter_joe"_ → the parsed **Permanent ban** card comes back with
    **Confirm / Cancel** — bans never execute without confirmation.
-4. *"remove rager's warning, that was banter"* → strike 2/3 → 1/3, logged like
+4. _"remove rager's warning, that was banter"_ → strike 2/3 → 1/3, logged like
    everything else in Moderation history (source: Manual · AI Assistant).
 
 ### 9.9 Disconnect & data deletion

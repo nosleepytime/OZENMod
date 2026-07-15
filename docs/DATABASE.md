@@ -9,9 +9,9 @@ Everything temporary cleans itself up.
 ## 1. Principles
 
 1. **Two data classes, two lifecycles.**
-   - *Permanent*: user/channel settings, lifetime counters, last-session summary.
+   - _Permanent_: user/channel settings, lifetime counters, last-session summary.
      Kept only because the product needs them. Bounded size (< ~50 KB per channel).
-   - *Temporary (session)*: warnings, live counters, recent events, status.
+   - _Temporary (session)_: warnings, live counters, recent events, status.
      Exists only while the bot is online; deleted automatically at stream end.
 2. **The chat itself is never stored.** Moderation events may keep an optional
    truncated snippet (≤ 80 chars, off by default) for the dashboard; full messages
@@ -87,14 +87,14 @@ ozenmod-rtdb/
 
 ## 3. Who reads / writes what
 
-| Node | Writer | Reader | Transport |
-| --- | --- | --- | --- |
-| `channels/{uid}/profile` | app (on connect), web (on sign-in) | web, app | SDK / REST |
-| `channels/{uid}/config` | web dashboard + app settings | bot (poll, ETag), web | SDK (web) / REST (bot) |
-| `channels/{uid}/stats/lifetime` | bot (debounced increments) | web | REST |
-| `channels/{uid}/lastSession` | bot (once, at session end) | web | REST |
-| `sessions/{uid}/**` | bot | web (live view) | REST (bot) / SDK (web) |
-| `sessions/{uid}/commands` | web (raw command, confirmations), bot (intent, status, result) | both | SDK (web) / REST poll ~3 s (bot) |
+| Node                            | Writer                                                         | Reader                | Transport                        |
+| ------------------------------- | -------------------------------------------------------------- | --------------------- | -------------------------------- |
+| `channels/{uid}/profile`        | app (on connect), web (on sign-in)                             | web, app              | SDK / REST                       |
+| `channels/{uid}/config`         | web dashboard + app settings                                   | bot (poll, ETag), web | SDK (web) / REST (bot)           |
+| `channels/{uid}/stats/lifetime` | bot (debounced increments)                                     | web                   | REST                             |
+| `channels/{uid}/lastSession`    | bot (once, at session end)                                     | web                   | REST                             |
+| `sessions/{uid}/**`             | bot                                                            | web (live view)       | REST (bot) / SDK (web)           |
+| `sessions/{uid}/commands`       | web (raw command, confirmations), bot (intent, status, result) | both                  | SDK (web) / REST poll ~3 s (bot) |
 
 ## 4. Session lifecycle & automatic cleanup
 
@@ -130,29 +130,29 @@ lastSession` — a few KB. Storage cannot accumulate.
 
 ## 5. Read/write budget (per 4-hour stream, typical mid-size chat)
 
-| Operation | Frequency | Ops |
-| --- | --- | --- |
-| Heartbeat + counter flush (single PATCH) | every 60 s | ~240 writes |
-| Recent-event push + trim | ~2/min average | ~480 writes |
-| Warning create/update/delete | tens | ~50 writes |
-| Config poll (ETag, usually 304) | every 60 s | ~240 reads, ~0 bytes |
-| Assistant command poll (ETag, usually 304) | every 3 s while live | ~4,800 reads, ~0 bytes transferred |
-| Assistant command round-trips | occasional | a few writes each |
-| Session create + finalize + lifetime update | once | ~5 writes |
-| **Total** | | **< ~800 writes, trivial transfer** |
+| Operation                                   | Frequency            | Ops                                 |
+| ------------------------------------------- | -------------------- | ----------------------------------- |
+| Heartbeat + counter flush (single PATCH)    | every 60 s           | ~240 writes                         |
+| Recent-event push + trim                    | ~2/min average       | ~480 writes                         |
+| Warning create/update/delete                | tens                 | ~50 writes                          |
+| Config poll (ETag, usually 304)             | every 60 s           | ~240 reads, ~0 bytes                |
+| Assistant command poll (ETag, usually 304)  | every 3 s while live | ~4,800 reads, ~0 bytes transferred  |
+| Assistant command round-trips               | occasional           | a few writes each                   |
+| Session create + finalize + lifetime update | once                 | ~5 writes                           |
+| **Total**                                   |                      | **< ~800 writes, trivial transfer** |
 
 Messages themselves generate **zero** database traffic. A dashboard left open adds
 one realtime connection and small reads. This fits the Spark plan by orders of
 magnitude, even with many concurrent streamers (the 100-connection limit applies
-to *simultaneous open dashboards*, not to bots, thanks to REST-only bot traffic).
+to _simultaneous open dashboards_, not to bots, thanks to REST-only bot traffic).
 
 ## 6. Spark plan limits → design responses
 
-| Spark limit | Design response |
-| --- | --- |
-| 100 simultaneous connections | Bots use REST (no connection). Only open dashboard tabs connect, briefly. |
-| 1 GB storage | Bounded per-channel footprint (< 50 KB permanent); temporary data self-deletes; no chat storage. |
-| 10 GB/month download | ETag config polling (304s are free-ish); dashboards read small aggregates; no history backfill. |
+| Spark limit                  | Design response                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| 100 simultaneous connections | Bots use REST (no connection). Only open dashboard tabs connect, briefly.                        |
+| 1 GB storage                 | Bounded per-channel footprint (< 50 KB permanent); temporary data self-deletes; no chat storage. |
+| 10 GB/month download         | ETag config polling (304s are free-ish); dashboards read small aggregates; no history backfill.  |
 
 If the project ever outgrows Spark, the schema is already REST-friendly and can
 move to any JSON store behind `packages/database` without touching the engine.
@@ -171,22 +171,24 @@ move to any JSON store behind `packages/database` without touching the engine.
         "config": {
           // structural validation mirrors the zod schema (spot checks)
           "warnings": {
-            "maxStrikes": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" }
+            "maxStrikes": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5",
+            },
           },
           "ai": {
             // defense in depth: no secret-shaped fields allowed
-            "apiKey": { ".validate": false }
-          }
-        }
-      }
+            "apiKey": { ".validate": false },
+          },
+        },
+      },
     },
     "sessions": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
-      }
-    }
-  }
+        ".write": "auth != null && auth.uid === $uid",
+      },
+    },
+  },
 }
 ```
 

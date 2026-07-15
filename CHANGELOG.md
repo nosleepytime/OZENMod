@@ -7,15 +7,22 @@ Versioning: [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- **AI Assistant command sidebar** (design + dashboard UI): an "Ask AI" button on
-  every dashboard page and in the desktop app opens a right-side panel where the
-  streamer moderates in plain English — ban/unban, timeout/untimeout, warn/unwarn,
-  clear strikes, delete messages, rule changes, queries and undo — with tiered
-  confirmation for permanent bans and a full audit trail.
-- Website implementation (milestone M1, in progress): monorepo bootstrap
-  (npm workspaces, strict TypeScript, ESLint, Prettier, CI), `packages/shared`
-  and `packages/ui`, Next.js app with marketing pages and the dashboard running
-  on clearly-labeled demo data.
+
+- **AI Assistant command sidebar**: an "Ask AI" button on every dashboard page (and
+  in the desktop app design) opens a right-side panel where the streamer moderates
+  in plain English — ban/unban, timeout/untimeout, warn/unwarn, clear strikes,
+  delete/purge messages, rule changes, queries and undo, with or without a reason.
+  Reversible actions execute instantly with an Undo; permanent bans and mass actions
+  require confirmation. Includes a deterministic slash-grammar parser that works with
+  zero AI, covered by unit tests.
+- **Website implementation (milestone M1)**: monorepo bootstrap (npm workspaces,
+  strict TypeScript, ESLint, Prettier, Vitest, GitHub Actions CI), `packages/shared`
+  (domain types, constants, provider metadata) and `packages/ui` (design tokens).
+  Next.js App Router site matching the validated mockups — landing, download, sign-in,
+  privacy, terms, docs, 404/500 — and the full dashboard (overview, moderation, AI &
+  providers, filters, settings) running on clearly-labeled demo data, with the AI
+  Assistant wired in. Twitch OAuth and health API routes scaffolded (env-driven,
+  degrade gracefully until Firebase lands in M4).
 - Complete product & engineering design documentation (`docs/`): product design,
   architecture, Firebase Realtime Database schema with automatic session cleanup,
   local-first moderation pipeline, modular AI provider system, security model,
@@ -26,5 +33,5 @@ Versioning: [SemVer](https://semver.org/).
 - Open-source scaffolding: README, MIT license, contributing guide, issue and
   pull request templates.
 
-> Design is awaiting validation. Implementation milestones (M1+) start after
-> approval — see [docs/ROADMAP.md](docs/ROADMAP.md).
+> Design approved on 2026-07-15. M1 (website) is implemented; next is the desktop
+> app shell (M2) — see [docs/ROADMAP.md](docs/ROADMAP.md).

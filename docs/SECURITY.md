@@ -6,14 +6,14 @@ What we protect, how, and the honest trade-offs of an all-free stack.
 
 ## 1. Assets & threat model (summary)
 
-| Asset | Threats | Primary defenses |
-| --- | --- | --- |
-| Twitch OAuth tokens | theft from disk, exfiltration | OS keychain (`safeStorage`), never in RTDB/logs, minimal scopes |
-| Channel control (mod powers) | hijacked bot banning viewers | scoped tokens, rate limits, explainable audit trail, human review |
-| Streamer data in Firebase | cross-user access, scraping | per-uid security rules, no public nodes, custom-token auth |
-| Vercel auth endpoints | code replay, token minting abuse | state/PKCE, Twitch-side verification, rate limiting |
-| The AI decision | prompt injection via chat | data-fencing, schema-validated verdicts, no tool access |
-| Release binaries | tampering | GitHub Releases + SHA256SUMS; signing documented as a paid upgrade |
+| Asset                        | Threats                          | Primary defenses                                                   |
+| ---------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| Twitch OAuth tokens          | theft from disk, exfiltration    | OS keychain (`safeStorage`), never in RTDB/logs, minimal scopes    |
+| Channel control (mod powers) | hijacked bot banning viewers     | scoped tokens, rate limits, explainable audit trail, human review  |
+| Streamer data in Firebase    | cross-user access, scraping      | per-uid security rules, no public nodes, custom-token auth         |
+| Vercel auth endpoints        | code replay, token minting abuse | state/PKCE, Twitch-side verification, rate limiting                |
+| The AI decision              | prompt injection via chat        | data-fencing, schema-validated verdicts, no tool access            |
+| Release binaries             | tampering                        | GitHub Releases + SHA256SUMS; signing documented as a paid upgrade |
 
 ## 2. Authentication & tokens
 

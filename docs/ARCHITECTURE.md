@@ -151,23 +151,23 @@ flowchart TB
 
 ### 5.1 Authentication
 
-| Client | Flow | Why |
-| --- | --- | --- |
-| Desktop app | **Device Code Grant** (`id.twitch.tv/oauth2/device`) | Made for apps without a secret; user types a short code at `twitch.tv/activate`. Refresh tokens supported. |
-| Website | **Authorization Code** (server-side exchange on Vercel) | Standard web flow; secret stays server-side; result is bridged to Firebase Auth via custom token. |
+| Client      | Flow                                                    | Why                                                                                                        |
+| ----------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Desktop app | **Device Code Grant** (`id.twitch.tv/oauth2/device`)    | Made for apps without a secret; user types a short code at `twitch.tv/activate`. Refresh tokens supported. |
+| Website     | **Authorization Code** (server-side exchange on Vercel) | Standard web flow; secret stays server-side; result is bridged to Firebase Auth via custom token.          |
 
 Tokens: access + refresh stored in the OS keychain via Electron `safeStorage`
 (desktop) / never stored client-side beyond the Firebase session (web).
 
 ### 5.2 Scopes (minimal)
 
-| Scope | Used for |
-| --- | --- |
-| `chat:read`, `chat:edit` | Read chat; post warning messages |
-| `moderator:manage:chat_messages` | Delete single messages |
-| `moderator:manage:banned_users` | Timeout / ban / unban |
-| `moderator:manage:warnings` | Native Twitch warnings (optional ladder step) |
-| `moderator:read:chatters` | Flood/raid heuristics (chatter count) |
+| Scope                            | Used for                                      |
+| -------------------------------- | --------------------------------------------- |
+| `chat:read`, `chat:edit`         | Read chat; post warning messages              |
+| `moderator:manage:chat_messages` | Delete single messages                        |
+| `moderator:manage:banned_users`  | Timeout / ban / unban                         |
+| `moderator:manage:warnings`      | Native Twitch warnings (optional ladder step) |
+| `moderator:read:chatters`        | Flood/raid heuristics (chatter count)         |
 
 If the bot runs as a dedicated account, the streamer grants it the moderator role;
 the app verifies effective permissions at startup and reports missing ones.
@@ -210,7 +210,7 @@ swept at next startup if the app crashed.
   - Windows (NSIS): background download, install on restart. Works unsigned
     (SmartScreen caveat documented on the download page).
   - macOS (DMG/ZIP): auto-install requires paid signing, so the free tier ships
-    *notify + open download page*. The moment a signing cert exists, flipping to
+    _notify + open download page_. The moment a signing cert exists, flipping to
     full auto-update is config-only.
 - **Release integrity:** every release publishes `SHA256SUMS.txt`; the download
   page links it.
@@ -233,26 +233,26 @@ Nothing else premium is built now.
 
 ## 10. CI/CD (GitHub Actions — free for public repos)
 
-| Workflow | Trigger | Jobs |
-| --- | --- | --- |
-| `ci.yml` | PRs + pushes to `main` | install → lint (ESLint) → format check (Prettier) → typecheck (tsc strict) → unit tests (Vitest) → build web + packages |
-| `release.yml` | Tag `v*` | matrix `windows-latest` / `macos-latest`: build desktop with electron-builder → generate checksums → create GitHub Release with installers + `SHA256SUMS.txt` |
-| Vercel Git integration | push / PR | web preview + production deploys (free, no Action needed) |
+| Workflow               | Trigger                | Jobs                                                                                                                                                          |
+| ---------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`               | PRs + pushes to `main` | install → lint (ESLint) → format check (Prettier) → typecheck (tsc strict) → unit tests (Vitest) → build web + packages                                       |
+| `release.yml`          | Tag `v*`               | matrix `windows-latest` / `macos-latest`: build desktop with electron-builder → generate checksums → create GitHub Release with installers + `SHA256SUMS.txt` |
+| Vercel Git integration | push / PR              | web preview + production deploys (free, no Action needed)                                                                                                     |
 
 ## 11. Technology choices & free plans
 
-| Tech | Role | Free-plan reality check |
-| --- | --- | --- |
-| Next.js + React + TypeScript + Tailwind | Website & dashboard | OSS |
-| Vercel | Hosting + serverless auth routes | Hobby plan: 100 GB-h functions, HTTPS, previews |
-| Firebase Realtime Database | Config + live session sync | Spark: 1 GB storage, 10 GB/mo transfer, 100 concurrent connections — design explicitly budgets for this (DATABASE.md) |
-| Firebase Auth (custom tokens) | Dashboard identity | Free |
-| Electron + Vite + React | Desktop app | OSS |
-| electron-builder + electron-updater | Installers + updates | OSS, GitHub Releases hosting free |
-| Twitch IRC / Helix / EventSub WS / OAuth | Chat + actions + lifecycle | Free |
-| Pollinations | Default AI provider | Free, keyless |
-| Ollama | Optional local AI | OSS, runs on user machine |
-| GitHub + Actions | Repo, CI, releases | Free for public repos |
-| ESLint, Prettier, Vitest, zod | Quality | OSS |
+| Tech                                     | Role                             | Free-plan reality check                                                                                               |
+| ---------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Next.js + React + TypeScript + Tailwind  | Website & dashboard              | OSS                                                                                                                   |
+| Vercel                                   | Hosting + serverless auth routes | Hobby plan: 100 GB-h functions, HTTPS, previews                                                                       |
+| Firebase Realtime Database               | Config + live session sync       | Spark: 1 GB storage, 10 GB/mo transfer, 100 concurrent connections — design explicitly budgets for this (DATABASE.md) |
+| Firebase Auth (custom tokens)            | Dashboard identity               | Free                                                                                                                  |
+| Electron + Vite + React                  | Desktop app                      | OSS                                                                                                                   |
+| electron-builder + electron-updater      | Installers + updates             | OSS, GitHub Releases hosting free                                                                                     |
+| Twitch IRC / Helix / EventSub WS / OAuth | Chat + actions + lifecycle       | Free                                                                                                                  |
+| Pollinations                             | Default AI provider              | Free, keyless                                                                                                         |
+| Ollama                                   | Optional local AI                | OSS, runs on user machine                                                                                             |
+| GitHub + Actions                         | Repo, CI, releases               | Free for public repos                                                                                                 |
+| ESLint, Prettier, Vitest, zod            | Quality                          | OSS                                                                                                                   |
 
 No paid dependency exists anywhere in the free tier.

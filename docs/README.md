@@ -8,15 +8,15 @@ It is the single source of truth for **what** we are building and **how** we are
 
 ## Documents
 
-| Document | What it covers |
-| --- | --- |
-| [PRODUCT.md](./PRODUCT.md) | Product vision, tiers, every page of the website, every view of the desktop app, the full feature list, UX principles and all user flows. |
+| Document                             | What it covers                                                                                                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [PRODUCT.md](./PRODUCT.md)           | Product vision, tiers, every page of the website, every view of the desktop app, the full feature list, UX principles and all user flows.                            |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Global architecture, monorepo folder structure, runtime topology, Twitch integration (OAuth, IRC, EventSub), updates, CI/CD, and the premium-ready extension points. |
-| [DATABASE.md](./DATABASE.md) | Firebase Realtime Database schema, session-based data lifecycle, automatic cleanup, and the read/write/storage optimization strategy. |
-| [MODERATION.md](./MODERATION.md) | The moderation pipeline: local-first analysis, AI escalation, decision types, explanations, the warning ladder and human review. |
-| [AI-PROVIDERS.md](./AI-PROVIDERS.md) | The modular AI provider system: interface, registry, Pollinations free default, BYO-key providers, prompting contract and reliability. |
-| [SECURITY.md](./SECURITY.md) | Security model: OAuth, token storage, secrets, database rules, Electron hardening, privacy and release integrity. |
-| [ROADMAP.md](./ROADMAP.md) | The mandatory development order, current status and milestones. |
+| [DATABASE.md](./DATABASE.md)         | Firebase Realtime Database schema, session-based data lifecycle, automatic cleanup, and the read/write/storage optimization strategy.                                |
+| [MODERATION.md](./MODERATION.md)     | The moderation pipeline: local-first analysis, AI escalation, decision types, explanations, the warning ladder and human review.                                     |
+| [AI-PROVIDERS.md](./AI-PROVIDERS.md) | The modular AI provider system: interface, registry, Pollinations free default, BYO-key providers, prompting contract and reliability.                               |
+| [SECURITY.md](./SECURITY.md)         | Security model: OAuth, token storage, secrets, database rules, Electron hardening, privacy and release integrity.                                                    |
+| [ROADMAP.md](./ROADMAP.md)           | The mandatory development order, current status and milestones.                                                                                                      |
 
 ## Design mockups
 

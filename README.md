@@ -4,7 +4,7 @@
 
 **AI-powered, context-aware moderation for Twitch — free to run, open source, explainable.**
 
-[![Status](https://img.shields.io/badge/status-design%20phase-8B7CFF)](docs/ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-M1%20website-8B7CFF)](docs/ROADMAP.md)
 [![License](https://img.shields.io/badge/license-MIT-34D399)](LICENSE)
 [![Made for Twitch](https://img.shields.io/badge/made%20for-Twitch-9146FF)](https://www.twitch.tv)
 
@@ -12,14 +12,14 @@
 
 ---
 
-> **Project status — Design phase.** The complete product design and the
-> high-fidelity mockups are finished and **awaiting validation**. Development of
-> the real system starts only after the design is approved at 100 %.
-> See the [Roadmap](docs/ROADMAP.md).
+> **Project status — Milestone M1 (website).** The design is approved. The Next.js
+> website and dashboard are implemented on demo data, including the **AI Assistant**
+> command sidebar. Next up: the desktop app shell (M2), then Twitch, Firebase and
+> the moderation engine. See the [Roadmap](docs/ROADMAP.md).
 
 ## What is OZENMod?
 
-OZENMod moderates a Twitch chat in real time — and actually *understands* it.
+OZENMod moderates a Twitch chat in real time — and actually _understands_ it.
 Instead of matching a blacklist, it normalizes evasion tricks, scores messages
 with local heuristics in milliseconds, and escalates only genuinely ambiguous
 messages to an AI that reasons about context, targets and intent. Every action
@@ -42,29 +42,59 @@ comes with a human-readable explanation.
 High-fidelity mockups (dark theme, English UI) live in [`design/`](design/) with
 rendered screenshots in [`design/screenshots/`](design/screenshots/):
 
-| Website | Desktop app |
-| --- | --- |
+| Website                                                                            | Desktop app                                                   |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | Landing, Sign-in, Dashboard overview, Moderation history, AI & Providers, Settings | Onboarding (Twitch device code), Control Room, Logs, Settings |
 
 ## Documentation
 
 The full product & engineering design is in [`docs/`](docs/):
 
-| Doc | Contents |
-| --- | --- |
-| [PRODUCT.md](docs/PRODUCT.md) | Vision, tiers, every page & view, features, UX, user flows |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Topology, monorepo layout, Twitch integration, updates, CI/CD |
-| [DATABASE.md](docs/DATABASE.md) | Firebase RTDB schema, session cleanup, read/write optimization |
-| [MODERATION.md](docs/MODERATION.md) | Local-first pipeline, AI escalation, decisions, warning ladder |
-| [AI-PROVIDERS.md](docs/AI-PROVIDERS.md) | Provider interface, Pollinations default, BYO keys |
-| [SECURITY.md](docs/SECURITY.md) | OAuth, token storage, rules, hardening, privacy |
-| [ROADMAP.md](docs/ROADMAP.md) | Mandatory development order & milestones |
+| Doc                                     | Contents                                                       |
+| --------------------------------------- | -------------------------------------------------------------- |
+| [PRODUCT.md](docs/PRODUCT.md)           | Vision, tiers, every page & view, features, UX, user flows     |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Topology, monorepo layout, Twitch integration, updates, CI/CD  |
+| [DATABASE.md](docs/DATABASE.md)         | Firebase RTDB schema, session cleanup, read/write optimization |
+| [MODERATION.md](docs/MODERATION.md)     | Local-first pipeline, AI escalation, decisions, warning ladder |
+| [AI-PROVIDERS.md](docs/AI-PROVIDERS.md) | Provider interface, Pollinations default, BYO keys             |
+| [SECURITY.md](docs/SECURITY.md)         | OAuth, token storage, rules, hardening, privacy                |
+| [ROADMAP.md](docs/ROADMAP.md)           | Mandatory development order & milestones                       |
+
+## Running the website locally
+
+```bash
+npm install
+npm run dev        # http://localhost:3000
+```
+
+Useful scripts (run from the repo root):
+
+```bash
+npm run build         # build all workspaces
+npm run lint          # ESLint
+npm run typecheck     # tsc --strict
+npm test              # Vitest (moderation command parser)
+npm run format        # Prettier
+```
+
+The dashboard runs on clearly-labeled demo data until the Firebase integration
+lands (milestone M4). Copy `.env.example` to `.env` to configure Twitch/Firebase.
+
+## Repository layout
+
+```
+apps/web/          Next.js website + dashboard + AI Assistant  (implemented)
+packages/shared/   Shared types, constants, provider metadata
+packages/ui/        Design tokens (dark theme)
+docs/              Product & engineering design
+design/            High-fidelity mockups + screenshots
+```
 
 ## Planned stack (all free)
 
 React · Next.js · TypeScript (strict) · Tailwind CSS · Electron ·
 Firebase Realtime Database · Firebase Auth · Twitch OAuth / IRC / EventSub ·
-Pollinations (default AI) · Vercel · GitHub Actions · ESLint · Prettier
+Pollinations (default AI) · Vercel · GitHub Actions · ESLint · Prettier · Vitest
 
 ## Contributing
 

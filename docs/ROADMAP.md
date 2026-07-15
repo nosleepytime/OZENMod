@@ -32,6 +32,7 @@ Official release                 ⏳ queued
 ## Milestones
 
 ### M0 — Design (current)
+
 - [x] Product design: pages, features, UX, user flows ([PRODUCT.md](./PRODUCT.md))
 - [x] Architecture, folder structure, free-tier topology ([ARCHITECTURE.md](./ARCHITECTURE.md))
 - [x] Firebase schema + cleanup/optimization strategy ([DATABASE.md](./DATABASE.md))
@@ -43,41 +44,49 @@ Official release                 ⏳ queued
 - [x] AI Assistant command sidebar designed (docs + mockups) — requested addition
 - [x] **Design validated at 100 %** (2026-07-15) ← gate passed
 
-### M1 — Website *(in progress)*
+### M1 — Website _(in progress)_
+
 Monorepo bootstrap (workspaces, TS strict, ESLint/Prettier, CI), `packages/ui`
 tokens from the validated design, marketing pages, download page, auth flow
 scaffolding (Twitch → Vercel route → Firebase custom token; wired live in M4),
 dashboard with demo data, AI Assistant panel UI.
 
 ### M2 — Desktop app shell
+
 Electron + Vite + React scaffold, hardened window, onboarding wizard with Twitch
 device flow, Control Room UI bound to a stubbed runtime, settings storage,
 tray, update check.
 
 ### M3 — Twitch connection
+
 `packages/twitch`: IRC client, Helix client (delete/timeout/ban/warn), EventSub
 WebSocket, token refresh; live feed shows real chat with allow-only decisions.
 
 ### M4 — Firebase integration
+
 `packages/database`: schema types, REST writer, ETag config poller, session
 lifecycle with automatic cleanup + crash sweep; dashboard reads real data;
 security rules deployed and tested.
 
 ### M5 — Moderation engine
+
 `packages/core`: S0–S4 stages with golden-corpus tests, decision engine, warning
 ladder (both modes), severity bypass, review queue — shipping in "local-only" mode.
 
 ### M6 — AI system
+
 `packages/ai`: provider registry, Pollinations default, BYO providers, budget,
 cache, circuit breaker, fallback; ambiguity gate wired; explanations end-to-end;
 AI Assistant command parsing (`interpretCommand`) + web command queue live.
 
 ### M7 — Automation & polish
+
 Auto start/stop on stream events, notifications, stats aggregation, empty states,
 error states, accessibility pass, performance pass against the targets in
 [MODERATION.md §7](./MODERATION.md).
 
 ### M8 — Tests & release
+
 Cross-package integration tests, evasion fuzzing, manual test matrix
 (Windows/macOS), `release.yml` producing installers + checksums, docs site pages,
 **v0.1.0** GitHub Release.

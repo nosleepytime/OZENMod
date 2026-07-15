@@ -1,0 +1,31 @@
+{
+  "name": "ozenmod",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered, context-aware moderation for Twitch — free to run, open source, explainable.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nosleepytime/OZENMod.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "prettier": "^3.4.2"
+  }
+}
