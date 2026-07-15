@@ -1,0 +1,26 @@
+{
+  "name": "@ozenmod/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first moderation engine: normalization, deterministic rules, heuristic scoring, ambiguity gate and the explainable decision engine.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ozenmod/shared": "*",
+    "@ozenmod/database": "*",
+    "@ozenmod/ai": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.5"
+  }
+}

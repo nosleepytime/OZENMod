@@ -2,9 +2,9 @@
  * LiveConnector — bridges the real Twitch integration (@ozenmod/twitch) to the
  * BotRuntime. When the app is configured (a Twitch client id in the environment
  * and stored tokens), `createLiveConnector` returns a connector that opens a
- * TwitchChatSession; otherwise it returns a null connector and the runtime uses
- * its self-contained demo session. This is the seam where the moderation engine
- * (M5) will sit between incoming chat and the action performed.
+ * TwitchChatSession; otherwise it returns a null connector and the runtime asks
+ * the streamer to connect. The moderation engine (@ozenmod/core) runs inside the
+ * BotRuntime between the incoming chat this delivers and the action performed.
  */
 import type { ChatMessage, HelixAction, StreamEvent, TwitchTokens } from '@ozenmod/twitch';
 import { TwitchChatSession, validateToken } from '@ozenmod/twitch';
@@ -25,7 +25,7 @@ export interface LiveConnector {
   say(text: string): void;
 }
 
-/** Null connector — used when Twitch is not configured (demo mode). */
+/** Null connector — used when Twitch is not configured; the runtime asks to connect. */
 const nullConnector: LiveConnector = {
   isConfigured: () => false,
   start: async () => {},

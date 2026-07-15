@@ -1,44 +1,44 @@
 /**
- * BotRuntime — the orchestrator the desktop main process owns. This is the
- * "local runtime" implementation (docs/ARCHITECTURE.md §9); a future hosted
- * worker would be a second implementation of the same shape, which is why the
- * engine, providers and database packages take a runtime context rather than
- * Electron APIs.
+ * BotRuntime — the orchestrator the desktop main process owns (the "local
+ * runtime" of docs/ARCHITECTURE.md §9). It connects real Twitch chat through the
+ * injected LiveConnector, runs every message through the local moderation engine
+ * (@ozenmod/core), performs the decided Twitch action, and keeps the session
+ * counters, feed, review queue and logs the UI renders.
  *
- * When Twitch is configured (a client id + stored tokens), start() connects a
- * real TwitchChatSession through the injected LiveConnector and the live feed
- * shows real chat. Until the moderation engine lands (M5) every real message is
- * recorded as "allowed" — the connector is the seam the engine will plug into.
- * Without credentials the runtime falls back to a self-contained demo session so
- * the whole app stays navigable and the AI Assistant executes end-to-end. The
- * IPC surface and the UI do not change either way.
+ * There is no demo mode: the app moderates real chat once a Twitch account is
+ * connected, and asks the streamer to connect when it is not.
  */
 import { EventEmitter } from 'node:events';
 import { parseCommand, actionMeta } from '@ozenmod/ai';
 import type { ChatMessage, HelixAction, StreamEvent } from '@ozenmod/twitch';
 import type { CommandIntent, ModerationEvent, ReviewItem } from '@ozenmod/shared';
+import {
+  ModerationEngine,
+  type ChatRole,
+  type Decision,
+  type IncomingMessage,
+} from '@ozenmod/core';
+import { defaultConfig } from '@ozenmod/database';
 import type { BotState, BotStatus, CommandResult, LogEntry, SystemInfo } from '../ipc-contract';
-import { DEMO_EVENTS, DEMO_REVIEW, seedLogs } from './demo';
 import type { LiveConnector } from './twitch-live';
 
 export class BotRuntime extends EventEmitter {
   private state: BotState = 'idle';
   private sessionStartedAt: number | null = null;
-  private channel = 'pixelforge';
-  private botAccount = 'ozenmod_bot';
+  private channel = process.env.TWITCH_CHANNEL ?? '';
+  private botAccount = '';
   private readonly appVersion: string;
   private readonly connector: LiveConnector | null;
+  private readonly engine = new ModerationEngine(defaultConfig());
   private logs: LogEntry[] = [];
-  private feed: ModerationEvent[] = [...DEMO_EVENTS];
-  private review: ReviewItem[] = [...DEMO_REVIEW];
-  private stats = { messages: 0, actions: 0, aiCalls: 0, reviewPending: DEMO_REVIEW.length };
-  private tick?: NodeJS.Timeout;
+  private feed: ModerationEvent[] = [];
+  private review: ReviewItem[] = [];
+  private stats = { messages: 0, actions: 0, aiCalls: 0, reviewPending: 0 };
 
   constructor(appVersion: string, connector: LiveConnector | null = null) {
     super();
     this.appVersion = appVersion;
     this.connector = connector;
-    this.logs = seedLogs();
   }
 
   private get live(): boolean {
@@ -48,15 +48,15 @@ export class BotRuntime extends EventEmitter {
   getStatus(): BotStatus {
     return {
       state: this.state,
-      channel: this.channel,
-      botAccount: this.botAccount,
+      channel: this.channel || '—',
+      botAccount: this.botAccount || '—',
       sessionStartedAt: this.sessionStartedAt,
       health: {
         twitch: this.state === 'protecting',
         ai: true,
         eventSub: this.state === 'protecting',
-        aiLatencyMs: 142,
-        aiProvider: 'Pollinations',
+        aiLatencyMs: 0,
+        aiProvider: 'Local-first',
       },
       stats: { ...this.stats },
       appVersion: this.appVersion,
@@ -70,7 +70,7 @@ export class BotRuntime extends EventEmitter {
       cpuPercent: this.state === 'protecting' ? 2.1 : 0.4,
       memoryMb: Math.round(mem),
       chatLatencyMs: this.state === 'protecting' ? 41 : 0,
-      aiLatencyMs: 1100,
+      aiLatencyMs: 0,
       lastSyncAt: this.state === 'protecting' ? Date.now() - 12_000 : null,
       updateAvailable: false,
     };
@@ -90,79 +90,85 @@ export class BotRuntime extends EventEmitter {
 
   start(): BotStatus {
     if (this.state === 'protecting' || this.state === 'starting') return this.getStatus();
-    this.setState('starting');
-    if (this.live && this.connector) {
-      this.log('info', 'Connecting to Twitch…');
-      void this.connector
-        .start({
-          onMessage: (m) => this.onChatMessage(m),
-          onStreamEvent: (e) => this.onStreamEvent(e),
-          onLog: (level, message) => this.log(level, message),
-        })
-        .then(() => {
-          this.sessionStartedAt = Date.now();
-          this.setState('protecting');
-        })
-        .catch((err: unknown) => {
-          this.log(
-            'error',
-            `Failed to connect: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          this.setState('error');
-        });
+    if (!this.live || !this.connector) {
+      this.log(
+        'warn',
+        'Twitch is not connected — open Settings and connect your account to start moderating.',
+      );
+      this.setState('idle');
       return this.getStatus();
     }
-
-    // Demo session (no Twitch credentials configured).
-    this.log('info', `Connecting to Twitch IRC as ${this.botAccount}…`);
-    setTimeout(() => {
-      this.sessionStartedAt = Date.now();
-      this.setState('protecting');
-      this.stats.messages = 12_482;
-      this.stats.actions = 96;
-      this.stats.aiCalls = 214;
-      this.log('info', `stream.online received — session started for #${this.channel}`);
-      this.log('ai', 'Provider Pollinations healthy — test verdict in 142 ms');
-      this.startTicking();
-    }, 600);
+    this.setState('starting');
+    this.log('info', 'Connecting to Twitch…');
+    void this.connector
+      .start({
+        onMessage: (m) => this.onChatMessage(m),
+        onStreamEvent: (e) => this.onStreamEvent(e),
+        onLog: (level, message) => this.log(level, message),
+      })
+      .then(() => {
+        this.sessionStartedAt = Date.now();
+        this.engine.reset();
+        this.setState('protecting');
+        this.log('info', `Protecting #${this.channel || 'your channel'} — analyzing chat locally`);
+      })
+      .catch((err: unknown) => {
+        this.log('error', `Failed to connect: ${err instanceof Error ? err.message : String(err)}`);
+        this.setState('error');
+      });
     return this.getStatus();
   }
 
   stop(): BotStatus {
     if (this.state === 'idle') return this.getStatus();
     this.setState('stopping');
-    this.stopTicking();
     if (this.live) this.connector?.stop();
     this.log('info', 'Finalizing session — writing summary, clearing temporary data');
+    // Temporary session data (warnings, counters) is discarded at stream end.
+    this.engine.reset();
+    this.review = [];
+    this.stats.reviewPending = 0;
     setTimeout(() => {
       this.sessionStartedAt = null;
       this.setState('idle');
       this.log('info', 'Session ended — temporary warnings and counters deleted');
-    }, 400);
+    }, 300);
     return this.getStatus();
   }
 
-  /**
-   * A real chat message arrived. Until the moderation engine lands (M5) every
-   * message is recorded as allowed — this is the seam the engine plugs into.
-   */
+  /** A real chat message arrived — run it through the moderation engine. */
   private onChatMessage(message: ChatMessage): void {
     this.stats.messages += 1;
-    const event: ModerationEvent = {
-      id: message.id || `msg-${Date.now()}`,
-      at: message.timestamp,
-      userLogin: message.login,
-      userDisplay: message.displayName,
-      category: 'none',
-      categoryLabel: 'Clean',
-      action: 'allow',
-      actionLabel: 'Allowed',
-      source: 'local',
-      reason: '',
-    };
+    const analysis = this.engine.analyze(toIncoming(message), message.timestamp || Date.now());
+    const decision = analysis.decision;
+
+    if (decision.action === 'allow' || decision.action === 'ignore') {
+      if (this.stats.messages % 10 === 0) this.emit('status', this.getStatus());
+      return;
+    }
+
+    if (decision.action === 'review') {
+      const item: ReviewItem = {
+        id: message.id || `rv-${Date.now()}`,
+        at: message.timestamp || Date.now(),
+        userLogin: message.login,
+        snippet: this.engine.config.privacy.storeSnippets ? message.text.slice(0, 80) : '',
+        note: decision.reason,
+        confidence: decision.confidence,
+      };
+      this.review = [item, ...this.review].slice(0, 50);
+      this.stats.reviewPending = this.review.length;
+      this.emit('review', item);
+    } else {
+      this.stats.actions += 1;
+      if (this.live) void this.performDecision(decision, message.userId, message.id);
+    }
+
+    const event = this.toEvent(message, decision);
     this.feed = [event, ...this.feed].slice(0, 50);
     this.emit('feed', event);
-    if (this.stats.messages % 10 === 0) this.emit('status', this.getStatus());
+    this.log('action', `${decision.actionLabel} — @${message.login}: ${decision.reason}`);
+    this.emit('status', this.getStatus());
   }
 
   private onStreamEvent(event: StreamEvent): void {
@@ -217,22 +223,58 @@ export class BotRuntime extends EventEmitter {
       };
       this.feed = [event, ...this.feed].slice(0, 50);
       this.emit('feed', event);
-      // In live mode, actually perform the action via Twitch (best-effort).
-      if (this.live) void this.applyLiveAction(intent);
+      if (this.live) void this.applyIntentAction(intent);
     }
     this.log('action', `${meta.title} via AI Assistant — ${intent.target ?? 'channel'}`);
     return { intent, status: 'done', message: intent.reply };
   }
 
-  /** Map a command intent to a Helix action and perform it via the connector. */
-  private async applyLiveAction(intent: CommandIntent): Promise<void> {
+  /** Perform the Twitch calls for an automatic engine decision. */
+  private async performDecision(
+    decision: Decision,
+    userId: string,
+    messageId: string,
+  ): Promise<void> {
+    if (!this.connector) return;
+    const reason = decision.reason.slice(0, 120);
+    const actions: HelixAction[] = [];
+    switch (decision.enforcement.type) {
+      case 'delete':
+        actions.push({ type: 'delete', messageId });
+        break;
+      case 'warn':
+        actions.push({ type: 'delete', messageId });
+        actions.push({ type: 'warn', userId, reason: decision.enforcement.text });
+        break;
+      case 'timeout':
+        actions.push({ type: 'delete', messageId });
+        actions.push({
+          type: 'timeout',
+          userId,
+          durationSeconds: decision.enforcement.seconds,
+          reason,
+        });
+        break;
+      case 'ban':
+        actions.push({ type: 'ban', userId, reason });
+        break;
+    }
+    for (const action of actions) {
+      const res = await this.connector.perform(action);
+      if (!res.ok) this.log('warn', `Twitch ${action.type} on @${decision.category} did not apply`);
+    }
+  }
+
+  /** Map a manual AI Assistant intent to a Helix action and perform it. */
+  private async applyIntentAction(intent: CommandIntent): Promise<void> {
     if (!this.connector) return;
     const target = intent.target;
+    if (!target) return;
     let action: HelixAction | null = null;
-    if (intent.action === 'ban' && target) {
+    if (intent.action === 'ban') {
       const userId = await this.connector.resolveUserId(target);
       if (userId) action = { type: 'ban', userId, reason: intent.reason };
-    } else if (intent.action === 'timeout' && target) {
+    } else if (intent.action === 'timeout') {
       const userId = await this.connector.resolveUserId(target);
       if (userId)
         action = {
@@ -241,10 +283,10 @@ export class BotRuntime extends EventEmitter {
           durationSeconds: intent.durationSeconds ?? 600,
           reason: intent.reason,
         };
-    } else if (intent.action === 'unban' && target) {
+    } else if (intent.action === 'unban') {
       const userId = await this.connector.resolveUserId(target);
       if (userId) action = { type: 'unban', userId };
-    } else if (intent.action === 'warn' && target) {
+    } else if (intent.action === 'warn') {
       const userId = await this.connector.resolveUserId(target);
       if (userId) action = { type: 'warn', userId, reason: intent.reason ?? 'Warning' };
     }
@@ -253,18 +295,20 @@ export class BotRuntime extends EventEmitter {
     if (!res.ok) this.log('warn', `Twitch action ${intent.action} on ${target} did not apply`);
   }
 
-  private startTicking() {
-    this.stopTicking();
-    this.tick = setInterval(() => {
-      if (this.state !== 'protecting') return;
-      this.stats.messages += Math.floor(6 + Math.random() * 10);
-      this.emit('status', this.getStatus());
-    }, 4000);
-  }
-
-  private stopTicking() {
-    if (this.tick) clearInterval(this.tick);
-    this.tick = undefined;
+  private toEvent(message: ChatMessage, decision: Decision): ModerationEvent {
+    return {
+      id: message.id || `ev-${Date.now()}`,
+      at: message.timestamp || Date.now(),
+      userLogin: message.login,
+      userDisplay: message.displayName,
+      category: decision.category,
+      categoryLabel: decision.categoryLabel,
+      action: decision.action,
+      actionLabel: decision.actionLabel,
+      source: decision.source,
+      reason: decision.reason,
+      ...(decision.strike ? { strike: decision.strike } : {}),
+    };
   }
 
   private setState(state: BotState) {
@@ -279,7 +323,27 @@ export class BotRuntime extends EventEmitter {
   }
 
   dispose() {
-    this.stopTicking();
     this.removeAllListeners();
   }
+}
+
+const MENTION_RE = /@([a-z0-9_]+)/gi;
+
+function toIncoming(m: ChatMessage): IncomingMessage {
+  const roles: ChatRole[] = ['viewer'];
+  if (m.isBroadcaster) roles.push('broadcaster');
+  if (m.isModerator) roles.push('moderator');
+  if (m.isVip) roles.push('vip');
+  if (m.isSubscriber) roles.push('subscriber');
+  const mentions = [...m.text.matchAll(MENTION_RE)].map((x) => x[1]!.toLowerCase());
+  return {
+    id: m.id,
+    login: m.login,
+    displayName: m.displayName,
+    text: m.text,
+    timestamp: m.timestamp,
+    roles,
+    emoteCount: m.emoteCount,
+    mentions,
+  };
 }

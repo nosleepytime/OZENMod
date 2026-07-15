@@ -2,18 +2,11 @@
  * Onboarding device-code auth. When a Twitch client id is configured this starts
  * the real device flow (docs/ARCHITECTURE.md §5.1) and polls in the background;
  * on authorization the tokens are encrypted into the vault. Without a client id
- * it returns a demo code so the onboarding screen is still navigable.
+ * it returns an honest error — there is no demo path (see SETUP.md).
  */
 import { startDeviceFlow, pollDeviceToken } from '@ozenmod/twitch';
 import type { DeviceCodeState } from '../ipc-contract';
 import { saveTokens } from './token-vault';
-
-const DEMO: DeviceCodeState = {
-  userCode: 'QXRV-PLMH',
-  verificationUri: 'https://www.twitch.tv/activate',
-  expiresInSeconds: 872,
-  status: 'waiting',
-};
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -21,7 +14,18 @@ export async function beginTwitchAuth(
   onLog: (level: 'info' | 'warn' | 'error', message: string) => void,
 ): Promise<DeviceCodeState> {
   const clientId = process.env.TWITCH_CLIENT_ID;
-  if (!clientId) return DEMO;
+  if (!clientId) {
+    onLog(
+      'error',
+      'No Twitch client id in this build. Install an official release, or build with TWITCH_CLIENT_ID set (see SETUP.md).',
+    );
+    return {
+      userCode: '',
+      verificationUri: 'https://dev.twitch.tv/console/apps',
+      expiresInSeconds: 0,
+      status: 'error',
+    };
+  }
 
   const flow = await startDeviceFlow({ clientId });
 

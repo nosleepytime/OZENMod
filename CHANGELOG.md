@@ -8,6 +8,27 @@ Versioning: [SemVer](https://semver.org/).
 
 ### Added
 
+- **Moderation engine (milestone M5)** — `packages/core`, the local-first brain,
+  pure and unit-tested (24 cases). Normalization defeats evasion (Unicode/NFKC
+  fold, homoglyphs, leetspeak, zero-width stripping, elongation and separator
+  injection); deterministic rules cover streamer banned terms, link policy
+  (trusted list, shorteners, suspicious TLDs), flood/rate, duplicates and caps
+  walls; heuristic scoring weighs a multi-category lexicon with target detection
+  and negation dampening; the ambiguity gate escalates only the uncertain band;
+  and the decision engine maps signals to explainable actions with severity
+  bypass, the session-scoped warning ladder, cooldowns and human review. Wired
+  into the desktop `BotRuntime`, which now moderates real chat end-to-end and
+  performs the decided Twitch action. The demo session is gone — the app requires
+  a connected Twitch account.
+- **Real authentication & live dashboard (milestone M4)** — sign in with Twitch
+  (Authorization Code → Firebase custom token), an auth-gated dashboard, and a
+  configuration editor that persists to the Firebase Realtime Database.
+  `packages/database` provides the RTDB schema, path builders, REST client and
+  session lifecycle/cleanup. Every dashboard page (overview, moderation, AI,
+  filters, settings) reads real data with real empty states — no demo data.
+  `database.rules.json` scopes each streamer to their own data; `SETUP.md`
+  documents creating the Twitch app and Firebase project and deploying. The app
+  builds and runs unconfigured, showing a clear "not configured" state.
 - **Twitch integration (milestone M3)** — `packages/twitch`, framework-free and
   fully unit-tested (35 cases): an IRCv3 tag/message parser and a WSS chat client
   (CAP/PASS/NICK/JOIN, PING→PONG, jittered-backoff reconnect, `say()` for public
@@ -58,6 +79,7 @@ Versioning: [SemVer](https://semver.org/).
 - Open-source scaffolding: README, MIT license, contributing guide, issue and
   pull request templates.
 
-> Design approved on 2026-07-15. Milestones M1 (website), M2 (desktop app) and
-> M3 (Twitch integration) are implemented; next is Firebase (M4) — see
-> [docs/ROADMAP.md](docs/ROADMAP.md).
+> Design approved on 2026-07-15. Milestones M1 (website), M2 (desktop app),
+> M3 (Twitch integration), M4 (Firebase auth + live dashboard) and M5 (local
+> moderation engine) are implemented; next is live AI escalation and desktop →
+> Firebase session sync — see [docs/ROADMAP.md](docs/ROADMAP.md).

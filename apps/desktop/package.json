@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@ozenmod/ai": "*",
+    "@ozenmod/core": "*",
+    "@ozenmod/database": "*",
     "@ozenmod/shared": "*",
     "@ozenmod/twitch": "*",
     "electron-updater": "^6.3.9"
