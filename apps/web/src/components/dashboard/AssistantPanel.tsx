@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { CommandIntent } from '@ozenmod/shared';
-import { parseCommand, actionMeta, type ActionIcon, type ActionTone } from '@/lib/command-parser';
+import { parseCommand, actionMeta, type ActionIcon, type ActionTone } from '@ozenmod/ai';
 import { useAssistant } from './AssistantContext';
 import { Icons } from './icons';
 

@@ -1,0 +1,34 @@
+appId: app.ozenmod.desktop
+productName: OZENMod
+copyright: Copyright © 2026 OZENMod contributors
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+# Publish to GitHub Releases (free). electron-updater reads this feed.
+publish:
+  provider: github
+  owner: nosleepytime
+  repo: OZENMod
+win:
+  target:
+    - nsis
+  artifactName: OZENMod-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.social-networking
+  artifactName: OZENMod-${version}-${arch}.${ext}
+dmg:
+  title: OZENMod ${version}
+linux:
+  target:
+    - AppImage
+  category: Network

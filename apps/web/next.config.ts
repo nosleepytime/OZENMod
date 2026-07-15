@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Workspace packages ship TypeScript source; Next transpiles them.
-  transpilePackages: ['@ozenmod/shared', '@ozenmod/ui'],
+  transpilePackages: ['@ozenmod/ai', '@ozenmod/shared', '@ozenmod/ui'],
   poweredByHeader: false,
   async headers() {
     return [

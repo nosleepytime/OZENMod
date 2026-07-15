@@ -4,7 +4,7 @@
 
 **AI-powered, context-aware moderation for Twitch — free to run, open source, explainable.**
 
-[![Status](https://img.shields.io/badge/status-M1%20website-8B7CFF)](docs/ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-M2%20apps%20built-8B7CFF)](docs/ROADMAP.md)
 [![License](https://img.shields.io/badge/license-MIT-34D399)](LICENSE)
 [![Made for Twitch](https://img.shields.io/badge/made%20for-Twitch-9146FF)](https://www.twitch.tv)
 
@@ -12,10 +12,11 @@
 
 ---
 
-> **Project status — Milestone M1 (website).** The design is approved. The Next.js
-> website and dashboard are implemented on demo data, including the **AI Assistant**
-> command sidebar. Next up: the desktop app shell (M2), then Twitch, Firebase and
-> the moderation engine. See the [Roadmap](docs/ROADMAP.md).
+> **Project status — Milestones M1 & M2 complete.** The design is approved and both
+> apps are built: the Next.js **website + dashboard** (`apps/web`) and the Electron
+> **desktop app** (`apps/desktop`), each with the **AI Assistant** command sidebar,
+> running on demo data. Next up: the live Twitch connection (M3), Firebase (M4) and
+> the moderation engine (M5–M6). See the [Roadmap](docs/ROADMAP.md).
 
 ## What is OZENMod?
 
@@ -60,32 +61,36 @@ The full product & engineering design is in [`docs/`](docs/):
 | [SECURITY.md](docs/SECURITY.md)         | OAuth, token storage, rules, hardening, privacy                |
 | [ROADMAP.md](docs/ROADMAP.md)           | Mandatory development order & milestones                       |
 
-## Running the website locally
+## Running it locally
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
+
+npm run dev                 # website → http://localhost:3000
+npm run dev -w desktop      # desktop app (Electron)
 ```
 
 Useful scripts (run from the repo root):
 
 ```bash
-npm run build         # build all workspaces
+npm run build         # build every workspace (web + desktop)
 npm run lint          # ESLint
 npm run typecheck     # tsc --strict
-npm test              # Vitest (moderation command parser)
+npm test              # Vitest (AI Assistant command parser)
 npm run format        # Prettier
 ```
 
-The dashboard runs on clearly-labeled demo data until the Firebase integration
-lands (milestone M4). Copy `.env.example` to `.env` to configure Twitch/Firebase.
+Both apps run on clearly-labeled demo data until the Twitch and Firebase
+integrations land (M3–M4). Copy `.env.example` to `.env` to configure them.
 
 ## Repository layout
 
 ```
-apps/web/          Next.js website + dashboard + AI Assistant  (implemented)
+apps/web/          Next.js website + dashboard + AI Assistant   (implemented)
+apps/desktop/      Electron desktop app + AI Assistant          (implemented)
+packages/ai/       AI provider system + command parser (+ tests)
 packages/shared/   Shared types, constants, provider metadata
-packages/ui/        Design tokens (dark theme)
+packages/ui/       Design tokens (dark theme)
 docs/              Product & engineering design
 design/            High-fidelity mockups + screenshots
 ```

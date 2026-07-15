@@ -4,9 +4,14 @@ node_modules/
 # Builds
 dist/
 out/
-build/
 .next/
 *.tsbuildinfo
+
+# Electron packaged installers (output), but keep buildResources (icons)
+apps/desktop/release/
+build/
+!apps/desktop/build/
+!apps/desktop/build/**
 
 # Environment & secrets
 .env

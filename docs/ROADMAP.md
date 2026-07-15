@@ -12,11 +12,11 @@ Desktop app visual design        ✅ done (design/mockups/desktop + screenshots)
         ↓
 Screenshots & validation         ✅ APPROVED at 100% (2026-07-15)
         ↓
-Website development              🔨 IN PROGRESS  ← we are here (M1)
+Website development              ✅ done (M1 — apps/web)
         ↓
-Desktop app development          ⏳ next
+Desktop app development          ✅ done (M2 — apps/desktop)  ← we are here
         ↓
-Twitch connection                ⏳ queued
+Twitch connection                🔨 next (M3)
         ↓
 Firebase Realtime Database       ⏳ queued
         ↓
@@ -44,18 +44,21 @@ Official release                 ⏳ queued
 - [x] AI Assistant command sidebar designed (docs + mockups) — requested addition
 - [x] **Design validated at 100 %** (2026-07-15) ← gate passed
 
-### M1 — Website _(in progress)_
+### M1 — Website ✅
 
-Monorepo bootstrap (workspaces, TS strict, ESLint/Prettier, CI), `packages/ui`
-tokens from the validated design, marketing pages, download page, auth flow
+Monorepo bootstrap (workspaces, TS strict, ESLint/Prettier, Vitest, CI),
+`packages/shared` + `packages/ui`, marketing pages, download page, auth-flow
 scaffolding (Twitch → Vercel route → Firebase custom token; wired live in M4),
-dashboard with demo data, AI Assistant panel UI.
+dashboard with demo data, AI Assistant panel UI. **Done** — `apps/web`.
 
-### M2 — Desktop app shell
+### M2 — Desktop app shell ✅
 
-Electron + Vite + React scaffold, hardened window, onboarding wizard with Twitch
-device flow, Control Room UI bound to a stubbed runtime, settings storage,
-tray, update check.
+Electron + Vite + React (electron-vite), hardened window (contextIsolation,
+sandbox, typed IPC allowlist), onboarding wizard with the Twitch device-code
+step, Control Room bound to a `BotRuntime` (local implementation on demo data),
+Logs, Settings, tray, menu, updater config, and the AI Assistant panel. The
+command parser lives in **`packages/ai`** (shared with the website) with Vitest
+coverage. **Done** — `apps/desktop`, `packages/ai`.
 
 ### M3 — Twitch connection
 

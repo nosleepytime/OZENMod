@@ -10,9 +10,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@ozenmod/ai": "*",
     "@ozenmod/shared": "*",
     "@ozenmod/ui": "*",
     "lucide-react": "^0.469.0",
