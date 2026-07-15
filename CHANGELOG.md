@@ -8,6 +8,18 @@ Versioning: [SemVer](https://semver.org/).
 
 ### Added
 
+- **Twitch integration (milestone M3)** — `packages/twitch`, framework-free and
+  fully unit-tested (35 cases): an IRCv3 tag/message parser and a WSS chat client
+  (CAP/PASS/NICK/JOIN, PING→PONG, jittered-backoff reconnect, `say()` for public
+  warnings); a Helix client for the moderation actions (delete message, timeout,
+  ban, unban, native warning) plus user lookup and EventSub subscription, with a
+  token-bucket rate limiter and one Retry-After-aware retry; an EventSub WebSocket
+  client (welcome/keepalive/notification/reconnect) driving `stream.online` /
+  `stream.offline`; the OAuth device-code flow with proactive, request-coalescing
+  token refresh and validation; and a `TwitchChatSession` orchestrator. Wired into
+  the desktop `BotRuntime` through a `LiveConnector` (real chat shown allow-only
+  until the engine lands in M5) backed by a `safeStorage` token vault, with a demo
+  fallback when no Twitch credentials are configured.
 - **Desktop app (milestone M2)** — Electron + Vite + React (`apps/desktop`), built
   with electron-vite. Hardened window (contextIsolation, sandbox, `nodeIntegration`
   off) with a typed IPC allowlist as its only capability surface; onboarding wizard
@@ -46,6 +58,6 @@ Versioning: [SemVer](https://semver.org/).
 - Open-source scaffolding: README, MIT license, contributing guide, issue and
   pull request templates.
 
-> Design approved on 2026-07-15. Milestones M1 (website) and M2 (desktop app) are
-> implemented; next is the live Twitch connection (M3) — see
+> Design approved on 2026-07-15. Milestones M1 (website), M2 (desktop app) and
+> M3 (Twitch integration) are implemented; next is Firebase (M4) — see
 > [docs/ROADMAP.md](docs/ROADMAP.md).

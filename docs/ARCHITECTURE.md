@@ -182,6 +182,12 @@ the app verifies effective permissions at startup and reports missing ones.
   drive the session lifecycle; reconnect + resubscribe handled by `packages/twitch`.
 - Rate limits respected centrally in the Helix client (token bucket, retry-after).
 
+> **Status:** `packages/twitch` is implemented (milestone M3) — IRCv3 parser + WSS
+> chat client, Helix moderation client, EventSub WS client, OAuth device-code flow
+> and token refresh, plus a `TwitchChatSession` orchestrator, all unit-tested. It
+> is wired into the desktop `BotRuntime` via a `LiveConnector` with a `safeStorage`
+> token vault; without configured credentials the runtime uses a demo session.
+
 ## 6. AI layer
 
 See [AI-PROVIDERS.md](./AI-PROVIDERS.md). Summary: `packages/ai` exposes

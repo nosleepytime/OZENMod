@@ -5,34 +5,44 @@
  * engine, providers and database packages take a runtime context rather than
  * Electron APIs.
  *
- * Milestone M2 ships this with a self-contained demo session (no real Twitch or
- * Firebase yet) so the whole app is navigable and the AI Assistant executes
- * end-to-end. M3–M6 replace the demo internals with the real IRC/Helix/EventSub
- * clients, the moderation engine and the AI provider — the IPC surface and the
- * UI do not change.
+ * When Twitch is configured (a client id + stored tokens), start() connects a
+ * real TwitchChatSession through the injected LiveConnector and the live feed
+ * shows real chat. Until the moderation engine lands (M5) every real message is
+ * recorded as "allowed" — the connector is the seam the engine will plug into.
+ * Without credentials the runtime falls back to a self-contained demo session so
+ * the whole app stays navigable and the AI Assistant executes end-to-end. The
+ * IPC surface and the UI do not change either way.
  */
 import { EventEmitter } from 'node:events';
 import { parseCommand, actionMeta } from '@ozenmod/ai';
+import type { ChatMessage, HelixAction, StreamEvent } from '@ozenmod/twitch';
 import type { CommandIntent, ModerationEvent, ReviewItem } from '@ozenmod/shared';
 import type { BotState, BotStatus, CommandResult, LogEntry, SystemInfo } from '../ipc-contract';
 import { DEMO_EVENTS, DEMO_REVIEW, seedLogs } from './demo';
+import type { LiveConnector } from './twitch-live';
 
 export class BotRuntime extends EventEmitter {
   private state: BotState = 'idle';
   private sessionStartedAt: number | null = null;
-  private readonly channel = 'pixelforge';
-  private readonly botAccount = 'ozenmod_bot';
+  private channel = 'pixelforge';
+  private botAccount = 'ozenmod_bot';
   private readonly appVersion: string;
+  private readonly connector: LiveConnector | null;
   private logs: LogEntry[] = [];
   private feed: ModerationEvent[] = [...DEMO_EVENTS];
   private review: ReviewItem[] = [...DEMO_REVIEW];
   private stats = { messages: 0, actions: 0, aiCalls: 0, reviewPending: DEMO_REVIEW.length };
   private tick?: NodeJS.Timeout;
 
-  constructor(appVersion: string) {
+  constructor(appVersion: string, connector: LiveConnector | null = null) {
     super();
     this.appVersion = appVersion;
+    this.connector = connector;
     this.logs = seedLogs();
+  }
+
+  private get live(): boolean {
+    return this.connector?.isConfigured() ?? false;
   }
 
   getStatus(): BotStatus {
@@ -81,6 +91,29 @@ export class BotRuntime extends EventEmitter {
   start(): BotStatus {
     if (this.state === 'protecting' || this.state === 'starting') return this.getStatus();
     this.setState('starting');
+    if (this.live && this.connector) {
+      this.log('info', 'Connecting to Twitch…');
+      void this.connector
+        .start({
+          onMessage: (m) => this.onChatMessage(m),
+          onStreamEvent: (e) => this.onStreamEvent(e),
+          onLog: (level, message) => this.log(level, message),
+        })
+        .then(() => {
+          this.sessionStartedAt = Date.now();
+          this.setState('protecting');
+        })
+        .catch((err: unknown) => {
+          this.log(
+            'error',
+            `Failed to connect: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          this.setState('error');
+        });
+      return this.getStatus();
+    }
+
+    // Demo session (no Twitch credentials configured).
     this.log('info', `Connecting to Twitch IRC as ${this.botAccount}…`);
     setTimeout(() => {
       this.sessionStartedAt = Date.now();
@@ -99,6 +132,7 @@ export class BotRuntime extends EventEmitter {
     if (this.state === 'idle') return this.getStatus();
     this.setState('stopping');
     this.stopTicking();
+    if (this.live) this.connector?.stop();
     this.log('info', 'Finalizing session — writing summary, clearing temporary data');
     setTimeout(() => {
       this.sessionStartedAt = null;
@@ -106,6 +140,39 @@ export class BotRuntime extends EventEmitter {
       this.log('info', 'Session ended — temporary warnings and counters deleted');
     }, 400);
     return this.getStatus();
+  }
+
+  /**
+   * A real chat message arrived. Until the moderation engine lands (M5) every
+   * message is recorded as allowed — this is the seam the engine plugs into.
+   */
+  private onChatMessage(message: ChatMessage): void {
+    this.stats.messages += 1;
+    const event: ModerationEvent = {
+      id: message.id || `msg-${Date.now()}`,
+      at: message.timestamp,
+      userLogin: message.login,
+      userDisplay: message.displayName,
+      category: 'none',
+      categoryLabel: 'Clean',
+      action: 'allow',
+      actionLabel: 'Allowed',
+      source: 'local',
+      reason: '',
+    };
+    this.feed = [event, ...this.feed].slice(0, 50);
+    this.emit('feed', event);
+    if (this.stats.messages % 10 === 0) this.emit('status', this.getStatus());
+  }
+
+  private onStreamEvent(event: StreamEvent): void {
+    if (event.type === 'stream.online') {
+      this.sessionStartedAt = event.startedAt;
+      this.log('info', 'stream.online received — session started');
+    } else {
+      this.log('info', 'stream.offline received — finalizing session');
+      this.stop();
+    }
   }
 
   /** Parse a command; execute immediately unless it needs confirmation. */
@@ -150,9 +217,40 @@ export class BotRuntime extends EventEmitter {
       };
       this.feed = [event, ...this.feed].slice(0, 50);
       this.emit('feed', event);
+      // In live mode, actually perform the action via Twitch (best-effort).
+      if (this.live) void this.applyLiveAction(intent);
     }
     this.log('action', `${meta.title} via AI Assistant — ${intent.target ?? 'channel'}`);
     return { intent, status: 'done', message: intent.reply };
+  }
+
+  /** Map a command intent to a Helix action and perform it via the connector. */
+  private async applyLiveAction(intent: CommandIntent): Promise<void> {
+    if (!this.connector) return;
+    const target = intent.target;
+    let action: HelixAction | null = null;
+    if (intent.action === 'ban' && target) {
+      const userId = await this.connector.resolveUserId(target);
+      if (userId) action = { type: 'ban', userId, reason: intent.reason };
+    } else if (intent.action === 'timeout' && target) {
+      const userId = await this.connector.resolveUserId(target);
+      if (userId)
+        action = {
+          type: 'timeout',
+          userId,
+          durationSeconds: intent.durationSeconds ?? 600,
+          reason: intent.reason,
+        };
+    } else if (intent.action === 'unban' && target) {
+      const userId = await this.connector.resolveUserId(target);
+      if (userId) action = { type: 'unban', userId };
+    } else if (intent.action === 'warn' && target) {
+      const userId = await this.connector.resolveUserId(target);
+      if (userId) action = { type: 'warn', userId, reason: intent.reason ?? 'Warning' };
+    }
+    if (!action) return;
+    const res = await this.connector.perform(action);
+    if (!res.ok) this.log('warn', `Twitch action ${intent.action} on ${target} did not apply`);
   }
 
   private startTicking() {

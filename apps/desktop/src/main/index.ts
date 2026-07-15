@@ -13,6 +13,7 @@ import { BotRuntime } from './bot-runtime';
 import { createTray } from './tray';
 import { createAppMenu } from './menu';
 import { initUpdater } from './updater';
+import { createLiveConnector } from './twitch-live';
 
 const NAV_ALLOWLIST = ['https://www.twitch.tv', 'https://twitch.tv', 'https://github.com'];
 
@@ -65,7 +66,7 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
-  runtime = new BotRuntime(app.getVersion());
+  runtime = new BotRuntime(app.getVersion(), createLiveConnector());
   mainWindow = createWindow();
   registerIpc(runtime, () => mainWindow);
   createAppMenu();

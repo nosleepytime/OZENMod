@@ -6,6 +6,7 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import type { CommandIntent } from '@ozenmod/shared';
 import type { BotRuntime } from './bot-runtime';
+import { beginTwitchAuth } from './twitch-auth';
 
 export function registerIpc(runtime: BotRuntime, getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('bot:getStatus', () => runtime.getStatus());
@@ -16,13 +17,11 @@ export function registerIpc(runtime: BotRuntime, getWindow: () => BrowserWindow 
   ipcMain.handle('bot:review', () => runtime.getReviewQueue());
   ipcMain.handle('bot:logs', () => runtime.getLogs());
 
-  ipcMain.handle('auth:beginTwitch', () => ({
-    // M3 wires the real device-code request to id.twitch.tv/oauth2/device.
-    userCode: 'QXRV-PLMH',
-    verificationUri: 'https://www.twitch.tv/activate',
-    expiresInSeconds: 872,
-    status: 'waiting' as const,
-  }));
+  ipcMain.handle('auth:beginTwitch', () =>
+    beginTwitchAuth((level, message) =>
+      getWindow()?.webContents.send('evt:log', { at: Date.now(), level, message }),
+    ),
+  );
 
   ipcMain.handle('assistant:run', (_e, raw: string) => runtime.runCommand(raw));
   ipcMain.handle('assistant:confirm', (_e, intent: CommandIntent) =>

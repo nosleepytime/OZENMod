@@ -4,7 +4,7 @@
 
 **AI-powered, context-aware moderation for Twitch — free to run, open source, explainable.**
 
-[![Status](https://img.shields.io/badge/status-M2%20apps%20built-8B7CFF)](docs/ROADMAP.md)
+[![Status](https://img.shields.io/badge/status-M3%20Twitch-8B7CFF)](docs/ROADMAP.md)
 [![License](https://img.shields.io/badge/license-MIT-34D399)](LICENSE)
 [![Made for Twitch](https://img.shields.io/badge/made%20for-Twitch-9146FF)](https://www.twitch.tv)
 
@@ -12,11 +12,13 @@
 
 ---
 
-> **Project status — Milestones M1 & M2 complete.** The design is approved and both
-> apps are built: the Next.js **website + dashboard** (`apps/web`) and the Electron
-> **desktop app** (`apps/desktop`), each with the **AI Assistant** command sidebar,
-> running on demo data. Next up: the live Twitch connection (M3), Firebase (M4) and
-> the moderation engine (M5–M6). See the [Roadmap](docs/ROADMAP.md).
+> **Project status — Milestones M1–M3 complete.** The design is approved; both apps
+> are built (the Next.js **website + dashboard** and the Electron **desktop app**,
+> each with the **AI Assistant** sidebar); and the **Twitch integration**
+> (`packages/twitch` — IRC, Helix moderation actions, EventSub, OAuth) is
+> implemented and wired into the desktop runtime, with a demo fallback when no
+> credentials are configured. Next up: Firebase (M4) and the moderation engine
+> (M5–M6). See the [Roadmap](docs/ROADMAP.md).
 
 ## What is OZENMod?
 
@@ -89,6 +91,7 @@ integrations land (M3–M4). Copy `.env.example` to `.env` to configure them.
 apps/web/          Next.js website + dashboard + AI Assistant   (implemented)
 apps/desktop/      Electron desktop app + AI Assistant          (implemented)
 packages/ai/       AI provider system + command parser (+ tests)
+packages/twitch/   IRC, Helix, EventSub, OAuth (+ 35 tests)
 packages/shared/   Shared types, constants, provider metadata
 packages/ui/       Design tokens (dark theme)
 docs/              Product & engineering design

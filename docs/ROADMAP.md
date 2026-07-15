@@ -14,11 +14,11 @@ Screenshots & validation         ✅ APPROVED at 100% (2026-07-15)
         ↓
 Website development              ✅ done (M1 — apps/web)
         ↓
-Desktop app development          ✅ done (M2 — apps/desktop)  ← we are here
+Desktop app development          ✅ done (M2 — apps/desktop)
         ↓
-Twitch connection                🔨 next (M3)
+Twitch connection                ✅ done (M3 — packages/twitch)  ← we are here
         ↓
-Firebase Realtime Database       ⏳ queued
+Firebase Realtime Database       🔨 next (M4)
         ↓
 AI moderation system             ⏳ queued
         ↓
@@ -60,10 +60,17 @@ Logs, Settings, tray, menu, updater config, and the AI Assistant panel. The
 command parser lives in **`packages/ai`** (shared with the website) with Vitest
 coverage. **Done** — `apps/desktop`, `packages/ai`.
 
-### M3 — Twitch connection
+### M3 — Twitch connection ✅
 
-`packages/twitch`: IRC client, Helix client (delete/timeout/ban/warn), EventSub
-WebSocket, token refresh; live feed shows real chat with allow-only decisions.
+`packages/twitch`: IRCv3 parser + WSS client (PING/PONG, jittered reconnect),
+Helix client (delete / timeout / ban / unban / warn) with token-bucket rate
+limiting and Retry-After backoff, EventSub WS client (welcome / keepalive /
+notification / reconnect for stream.online/offline), OAuth device-code flow +
+proactive token refresh + validation, and a `TwitchChatSession` orchestrator.
+Wired into the desktop `BotRuntime` via a `LiveConnector` (real chat, allow-only
+until the engine lands in M5) with a token vault (`safeStorage`) and a demo
+fallback when unconfigured. **48 unit tests** across the AI + Twitch packages.
+**Done** — `packages/twitch`.
 
 ### M4 — Firebase integration
 
