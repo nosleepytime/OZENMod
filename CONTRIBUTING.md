@@ -38,7 +38,7 @@ Code contributions open up once the design is validated and milestone M1 starts.
 - ESLint + Prettier are the law — CI enforces both.
 - Pure logic goes in `packages/` (framework-free); UI stays in `apps/`.
 - New moderation rules ship with golden-corpus tests
-  ([docs/MODERATION.md §8](docs/MODERATION.md)).
+  ([docs/MODERATION.md §9](docs/MODERATION.md)).
 
 ## Reporting security issues
 

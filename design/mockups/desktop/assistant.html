@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OZENMod Desktop — Control Room</title>
+<title>OZENMod Desktop — AI Assistant</title>
 <link rel="stylesheet" href="../shared/fonts/inter.css">
 <link rel="stylesheet" href="../shared/tokens.css">
 <link rel="stylesheet" href="../shared/components.css">
@@ -27,6 +27,21 @@
   .review-quote { font-size: 12px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-left: 2px solid var(--warn); border-radius: 8px; padding: 7px 9px; }
   .sys-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-2); padding: 6px 0; }
   .sys-row b { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  /* AI Assistant panel (in-window overlay) */
+  .window { position: relative; }
+  .assistant { position: absolute; top: 41px; right: 0; bottom: 0; width: 362px; background: var(--bg-deep); border-left: 1px solid var(--border-strong); box-shadow: -28px 0 70px rgba(0, 0, 0, 0.55); display: flex; flex-direction: column; z-index: 50; }
+  .as-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .as-thread { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 11px; overflow: hidden; }
+  .as-msg-user { align-self: flex-end; max-width: 88%; background: var(--accent-soft); border: 1px solid rgba(124, 92, 255, 0.32); color: var(--text); padding: 8px 11px; border-radius: 12px 12px 4px 12px; font-size: 12px; }
+  .as-card { padding: 11px 13px; display: flex; flex-direction: column; gap: 7px; font-size: 12px; }
+  .as-card-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 12.5px; }
+  .as-kv { display: flex; gap: 8px; font-size: 11.5px; color: var(--text-2); }
+  .as-kv b { color: var(--text-3); font-weight: 600; min-width: 58px; }
+  .as-meta { font-size: 10.5px; color: var(--text-3); }
+  .as-confirm { border-color: rgba(251, 191, 36, 0.4); }
+  .as-composer { display: flex; gap: 8px; padding: 11px 14px 7px; border-top: 1px solid var(--border); }
+  .as-foot { padding: 0 14px 12px; font-size: 10.5px; color: var(--text-3); line-height: 1.5; }
 </style>
 </head>
 <body class="desktop-backdrop">
@@ -50,6 +65,8 @@
 <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
 <symbol id="i-square" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1.5"/></symbol>
 <symbol id="i-twitch" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 2h17v12.5L16.5 19H13l-2.5 2.5V19H4V2zm7 4.5h2v5h-2v-5zm5 0h2v5h-2v-5z"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M4 10h11a5 5 0 015 5v0a5 5 0 01-5 5H8"/><path d="M8 6l-4 4 4 4"/></symbol>
 </defs></svg>
 
 <div class="window">
@@ -70,8 +87,8 @@
   <div class="app-body">
     <!-- Rail -->
     <aside class="rail">
-      <span class="rail-item active"><svg class="ic"><use href="#i-home"/></svg></span>
-      <span class="rail-item"><svg class="ic"><use href="#i-sparkle"/></svg></span>
+      <span class="rail-item"><svg class="ic"><use href="#i-home"/></svg></span>
+      <span class="rail-item active"><svg class="ic"><use href="#i-sparkle"/></svg></span>
       <span class="rail-item"><svg class="ic"><use href="#i-terminal"/></svg><span class="rail-badge">2</span></span>
       <span class="rail-item"><svg class="ic"><use href="#i-chartbars"/></svg></span>
       <span class="rail-item"><svg class="ic"><use href="#i-gear"/></svg></span>
@@ -198,6 +215,62 @@
       </div>
     </div>
   </div>
+
+  <!-- ============ AI ASSISTANT PANEL ============ -->
+  <aside class="assistant">
+    <div class="as-head">
+      <span style="width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent-2);border:1px solid rgba(124,92,255,.3);display:grid;place-items:center"><svg class="ic"><use href="#i-sparkle"/></svg></span>
+      <div class="grow">
+        <b style="font-size:13px;display:block">AI Assistant</b>
+        <span class="card-sub">Moderate in plain English</span>
+      </div>
+      <span class="kbd">Ctrl K</span>
+      <button class="btn btn-ghost btn-sm" style="width:28px;padding:0"><svg class="ic ic-sm"><use href="#i-x"/></svg></button>
+    </div>
+
+    <div class="as-thread">
+      <div class="as-msg-user">timeout spamlord2000 for 10 min, he keeps spamming his discord</div>
+      <div class="card as-card">
+        <div class="as-card-head"><svg class="ic" style="color:var(--warn)"><use href="#i-clock"/></svg> Timeout applied <span class="chip chip-good" style="margin-left:auto"><svg class="ic ic-sm"><use href="#i-check"/></svg> Done</span></div>
+        <div class="as-kv"><b>User</b> spamlord2000</div>
+        <div class="as-kv"><b>Duration</b> 10 minutes</div>
+        <div class="as-kv"><b>Reason</b> Spamming Discord invites (manual)</div>
+        <div class="row">
+          <button class="btn btn-outline btn-sm"><svg class="ic ic-sm"><use href="#i-undo"/></svg> Undo</button>
+          <span class="as-meta" style="margin-left:auto">22:15:42 · instant (local bot)</span>
+        </div>
+      </div>
+
+      <div class="as-msg-user">clear all of dan's strikes</div>
+      <div class="card as-card">
+        <div class="as-card-head"><svg class="ic" style="color:var(--good)"><use href="#i-eye"/></svg> Strikes cleared <span class="chip chip-good" style="margin-left:auto"><svg class="ic ic-sm"><use href="#i-check"/></svg> Done</span></div>
+        <div class="as-kv"><b>User</b> old_pal_dan</div>
+        <div class="as-kv"><b>Strikes</b> 1/3 → 0/3</div>
+        <div class="row">
+          <button class="btn btn-outline btn-sm"><svg class="ic ic-sm"><use href="#i-undo"/></svg> Undo</button>
+          <span class="as-meta" style="margin-left:auto">22:16:05</span>
+        </div>
+      </div>
+
+      <div class="as-msg-user">ban grifter_joe</div>
+      <div class="card as-card as-confirm">
+        <div class="as-card-head"><svg class="ic" style="color:var(--warn)"><use href="#i-alert"/></svg> Permanent ban — confirm?</div>
+        <div class="as-kv"><b>User</b> grifter_joe</div>
+        <div class="as-kv"><b>Reason</b> None given (optional)</div>
+        <div class="row">
+          <button class="btn btn-danger btn-sm"><svg class="ic ic-sm"><use href="#i-ban"/></svg> Confirm ban</button>
+          <button class="btn btn-outline btn-sm">Cancel</button>
+        </div>
+        <span class="as-meta">Bans always ask for confirmation.</span>
+      </div>
+    </div>
+
+    <div class="as-composer">
+      <span class="input grow" style="color:var(--text-3)">Ask anything — ban, timeout, warn, unwarn…</span>
+      <button class="btn btn-primary" style="width:36px;padding:0"><svg class="ic"><use href="#i-send"/></svg></button>
+    </div>
+    <div class="as-foot">Commands execute through the local bot and are logged. Type <span class="kbd">/</span> for exact syntax — works even when the AI is offline.</div>
+  </aside>
 </div>
 
 </body>

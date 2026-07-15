@@ -99,6 +99,13 @@ top bar (channel identity, live status, session timer, bot status, account menu)
 | `/dashboard/filters` | **Filters** | Banned terms & regex manager (with severity), link policy (block all / trusted list / allow), trusted domains, spam & flood thresholds (caps %, emote %, repetition, rate), exemptions (mods, VIPs, subscribers, regulars). |
 | `/dashboard/settings` | **Settings** | Channel & bot identity, warning ladder editor (see §8.3), timeout durations, permanent-vs-session data explanation, notifications, data & privacy (snippet storage toggle, delete-all-data), danger zone (disconnect Twitch). |
 
+In addition to the pages, every dashboard page exposes the **AI Assistant** —
+an **Ask AI** button in the top bar (shortcut `Ctrl/Cmd+K`) that slides a panel in
+from the right. The streamer moderates in plain English: *"timeout spamlord2000
+for 10 min, he keeps spamming"*, *"remove xX_rager_Xx's warning"*, *"ban
+grifter_joe"*, *"who did I ban today?"*. See §6.3 for the full capability list
+and [MODERATION.md §8](./MODERATION.md) for the execution model.
+
 Notes:
 - API keys for BYO providers are **never entered on the website** — they stay on the
   streamer's machine (see [SECURITY.md](./SECURITY.md)). The dashboard shows which
@@ -120,7 +127,39 @@ Electron app (Windows NSIS installer, macOS DMG), tray-capable, dark theme.
 | **Settings** | Tabs: **General** (launch at login, auto-start bot when stream goes live, minimize to tray, desktop notifications, update channel + check now), **Moderation** (same rule editor as dashboard, kept in sync), **AI** (provider picker, model, API key entry stored in OS keychain, test connection), **Advanced** (log retention, local data folder, diagnostics). |
 | **About** | Version, changelog link, licenses, credits, links to GitHub/docs. |
 
-### 6.2 Behaviors
+### 6.2 AI Assistant (desktop)
+
+The same **Ask AI** panel exists in the app (sparkle item in the left rail,
+`Ctrl/Cmd+K`). In the desktop app commands execute **directly** through the local
+bot — no round-trip — so it is the fastest way to act mid-stream.
+
+### 6.3 AI Assistant capabilities (both surfaces)
+
+The assistant turns plain-English requests into moderation actions. Full command
+surface (reasons always optional — the assistant fills a sensible one, or none):
+
+| Group | Commands |
+| --- | --- |
+| Users — punish | ban (permanent), timeout (any duration), warn (adds a ladder strike), delete a user's last message(s), purge a user's recent messages |
+| Users — forgive | unban, untimeout (lift an active timeout), remove a warning / clear one or all strikes, approve a held message |
+| Review queue | approve or remove pending review items ("approve dan's message") |
+| Rules | add/remove banned terms, add/remove trusted domains, change link policy, toggle categories, set sensitivity (lenient/balanced/strict), adjust AI budget |
+| Exemptions | exempt or un-exempt a user, VIPs, subscribers |
+| Queries | a user's strikes and history this stream, session stats, recent bans/timeouts, "why was X actioned?" |
+| Meta | undo the last action, "always ask before executing" toggle, `/` slash-syntax fallback that works even without AI |
+
+Safety model (details in [MODERATION.md §8](./MODERATION.md)):
+
+- **Tier 1 — execute immediately** with an inline result card and one-click
+  **Undo**: warn, unwarn, timeout, untimeout, unban, delete/purge, queries,
+  rule edits, review decisions.
+- **Tier 2 — always confirm first**: permanent bans, timeouts over 24 h, and any
+  mass action ("clear everyone's strikes"). The assistant shows the parsed action
+  card with **Confirm / Cancel**.
+- Every executed command is logged in Moderation history with source
+  `Manual · AI Assistant`, fully auditable like any automatic decision.
+
+### 6.4 Behaviors
 
 - **Session lifecycle:** the app subscribes to Twitch EventSub (WebSocket). When the
   stream goes online it can auto-start the bot; when it goes offline it finalizes the
@@ -163,6 +202,16 @@ Electron app (Windows NSIS installer, macOS DMG), tray-capable, dark theme.
 - Live feed with decisions and reasons, human-review queue, logs, stats.
 - Settings synced with dashboard; API keys stored in the OS keychain.
 - Auto-updates from GitHub Releases; tray mode; desktop notifications.
+
+### AI Assistant (command sidebar)
+- Right-side panel on every dashboard page and in the desktop app (`Ctrl/Cmd+K`).
+- Plain-English moderation: ban/unban, timeout/untimeout, warn/unwarn, clear
+  strikes, delete/purge messages, review decisions, rule & sensitivity changes,
+  stats and per-user queries, undo — with or without a reason.
+- Tiered safety: instant execution + Undo for reversible actions, mandatory
+  confirmation for permanent bans and mass actions; every command is logged.
+- Slash-syntax fallback (`/ban user reason`) parsed locally when the AI is
+  unavailable.
 
 ### Website & dashboard
 - Twitch sign-in, live session view, statistics, moderation history with
@@ -278,7 +327,20 @@ Severe categories (threats, doxxing, slurs, scam links) skip the ladder.
 - Windows: downloads in background → "Update ready — restart to apply".
 - macOS: "Version X is available" → opens the release download.
 
-### 9.8 Disconnect & data deletion
+### 9.8 AI Assistant command (dashboard, mid-stream)
+
+1. A troll floods chat; the streamer's mod opens the dashboard, hits **Ask AI**
+   (`Ctrl/Cmd+K`) and types *"timeout spamlord2000 30 min, discord spam"*.
+2. The command is queued to the running bot, which parses it into a structured
+   intent, executes the timeout via Twitch, and reports back — the panel shows the
+   action card *Timeout · spamlord2000 · 30 min* with **Undo** (round-trip ≤ ~4 s;
+   instant when typed in the desktop app).
+3. *"ban grifter_joe"* → the parsed **Permanent ban** card comes back with
+   **Confirm / Cancel** — bans never execute without confirmation.
+4. *"remove rager's warning, that was banter"* → strike 2/3 → 1/3, logged like
+   everything else in Moderation history (source: Manual · AI Assistant).
+
+### 9.9 Disconnect & data deletion
 
 1. Settings → Danger zone → **Disconnect Twitch** (confirmation required).
 2. App revokes tokens, clears the keychain, deletes the channel's Firebase data

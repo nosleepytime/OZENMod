@@ -190,6 +190,13 @@ its local stages mark a message ambiguous; verdicts are strict-JSON, validated,
 with timeouts and a conservative local fallback. Default provider: **Pollinations**
 (free, no key). BYO keys never leave the streamer's machine.
 
+The same layer powers the **AI Assistant** command sidebar
+([MODERATION.md §8](./MODERATION.md)): in the desktop app commands are parsed and
+executed in-process; from the web dashboard they travel through the session's
+`commands` queue in RTDB (bot polls with ETag ~3 s, writes the structured intent
+and result back). Execution, risk tiers and confirmations always happen in the
+bot — the model only produces intents.
+
 ## 7. Data layer
 
 See [DATABASE.md](./DATABASE.md). Summary: permanent data = small config +

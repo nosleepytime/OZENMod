@@ -116,7 +116,36 @@ adapter, e.g. JSON mode flags):
   band → human review; low-risk → allow. Configurable to `strict-local` (act on
   local score alone) for channels that prefer it.
 
-## 7. Adding a provider (contributor guide)
+## 7. Second AI task: command interpretation (AI Assistant)
+
+Providers expose one more capability used by the AI Assistant sidebar
+([MODERATION.md §8](./MODERATION.md)):
+
+```ts
+interface AIProvider {
+  // …moderate(), testConnection(), listModels?() as above…
+
+  /** Parse a plain-English moderation command into a structured intent. */
+  interpretCommand(request: CommandRequest, opts: CallOptions): Promise<CommandIntent>;
+}
+
+export interface CommandRequest {
+  raw: string;                    // "timeout spamlord2000 30m, discord spam"
+  knownUsers: string[];           // recent chatters for target resolution
+  context: { maxStrikes: number; categories: string[] };
+}
+```
+
+- Same transport, timeout, retry and validation machinery as `moderate()` —
+  strict JSON via zod (`commandIntentSchema`), one repair retry, then the local
+  slash-grammar fallback (`/ban`, `/timeout`, `/warn`, `/unwarn`, `/unban`,
+  `/clear`, `/term`, `/stats`) so the assistant keeps working with zero AI.
+- The parser only ever returns an **intent** — execution, risk tiers and
+  confirmation live in the decision layer, never in the model.
+- Command parsing shares the AI budget with moderation verdicts (manual commands
+  are rare; they simply consume a token from the same bucket).
+
+## 8. Adding a provider (contributor guide)
 
 1. `packages/ai/src/providers/<name>.ts` — implement `AIProvider` (usually by
    configuring the shared OpenAI-compatible core).

@@ -11,15 +11,17 @@ design/
 ├── mockups/
 │   ├── shared/          # design tokens, components, Inter font (single source of truth)
 │   ├── web/             # website & dashboard screens
-│   │   ├── landing.html         Landing page (marketing)
-│   │   ├── login.html           Sign in with Twitch
-│   │   ├── dashboard.html       Dashboard — Overview
-│   │   ├── moderation.html      Dashboard — Moderation history + event detail
-│   │   ├── ai-providers.html    Dashboard — AI & Providers
-│   │   └── settings.html        Dashboard — Settings (ladder, privacy, danger zone)
+│   │   ├── landing.html             Landing page (marketing)
+│   │   ├── login.html               Sign in with Twitch
+│   │   ├── dashboard.html           Dashboard — Overview
+│   │   ├── dashboard-assistant.html Dashboard with the AI Assistant panel open
+│   │   ├── moderation.html          Dashboard — Moderation history + event detail
+│   │   ├── ai-providers.html        Dashboard — AI & Providers
+│   │   └── settings.html            Dashboard — Settings (ladder, privacy, danger zone)
 │   └── desktop/         # desktop app screens (Electron)
 │       ├── onboarding.html      First run — Twitch device-code connection
 │       ├── main.html            Control Room (status, feed, review, system)
+│       ├── assistant.html       Control Room with the AI Assistant panel open
 │       ├── logs.html            Logs console
 │       └── settings.html        App settings (General tab)
 └── screenshots/         # rendered PNGs of every screen (review these)

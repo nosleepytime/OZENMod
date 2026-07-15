@@ -7,6 +7,15 @@ Versioning: [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **AI Assistant command sidebar** (design + dashboard UI): an "Ask AI" button on
+  every dashboard page and in the desktop app opens a right-side panel where the
+  streamer moderates in plain English — ban/unban, timeout/untimeout, warn/unwarn,
+  clear strikes, delete messages, rule changes, queries and undo — with tiered
+  confirmation for permanent bans and a full audit trail.
+- Website implementation (milestone M1, in progress): monorepo bootstrap
+  (npm workspaces, strict TypeScript, ESLint, Prettier, CI), `packages/shared`
+  and `packages/ui`, Next.js app with marketing pages and the dashboard running
+  on clearly-labeled demo data.
 - Complete product & engineering design documentation (`docs/`): product design,
   architecture, Firebase Realtime Database schema with automatic session cleanup,
   local-first moderation pipeline, modular AI provider system, security model,

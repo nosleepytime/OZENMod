@@ -71,10 +71,18 @@ ozenmod-rtdb/
         ├── review/
         │   └── {eventId}/ { t, user, snippet?, category, confidence, suggested }
         │                 # human-review queue; resolved entries removed immediately
-        └── recent/
-            └── {pushId}/ { t, user, action: "timeout", category: "spam",
-                            reason: "…", source: "local" | "ai", strike: "2/3" }
-                          # ring buffer — app trims to the newest 50 on every push
+        ├── recent/
+        │   └── {pushId}/ { t, user, action: "timeout", category: "spam",
+        │                   reason: "…", source: "local" | "ai" | "manual",
+        │                   strike: "2/3" }
+        │                 # ring buffer — app trims to the newest 50 on every push
+        └── commands/
+            └── {pushId}/ { t, source: "dashboard", raw: "timeout spamlord2000 30m",
+                            status: "pending" | "needs-confirmation" | "confirmed"
+                                    | "done" | "failed" | "cancelled",
+                            intent?: {…}, result?: { appliedAt, message } }
+                          # AI Assistant queue (web → bot); bot trims to the
+                          # newest 20; the whole node dies with the session
 ```
 
 ## 3. Who reads / writes what
@@ -86,6 +94,7 @@ ozenmod-rtdb/
 | `channels/{uid}/stats/lifetime` | bot (debounced increments) | web | REST |
 | `channels/{uid}/lastSession` | bot (once, at session end) | web | REST |
 | `sessions/{uid}/**` | bot | web (live view) | REST (bot) / SDK (web) |
+| `sessions/{uid}/commands` | web (raw command, confirmations), bot (intent, status, result) | both | SDK (web) / REST poll ~3 s (bot) |
 
 ## 4. Session lifecycle & automatic cleanup
 
@@ -127,6 +136,8 @@ lastSession` — a few KB. Storage cannot accumulate.
 | Recent-event push + trim | ~2/min average | ~480 writes |
 | Warning create/update/delete | tens | ~50 writes |
 | Config poll (ETag, usually 304) | every 60 s | ~240 reads, ~0 bytes |
+| Assistant command poll (ETag, usually 304) | every 3 s while live | ~4,800 reads, ~0 bytes transferred |
+| Assistant command round-trips | occasional | a few writes each |
 | Session create + finalize + lifetime update | once | ~5 writes |
 | **Total** | | **< ~800 writes, trivial transfer** |
 

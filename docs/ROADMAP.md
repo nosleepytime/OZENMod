@@ -10,23 +10,23 @@ Website visual design            ✅ done (design/mockups/web + screenshots)
         ↓
 Desktop app visual design        ✅ done (design/mockups/desktop + screenshots)
         ↓
-Screenshots & validation         ⏳ WAITING FOR APPROVAL  ← we are here
+Screenshots & validation         ✅ APPROVED at 100% (2026-07-15)
         ↓
-Website development              ⛔ blocked until design approval
+Website development              🔨 IN PROGRESS  ← we are here (M1)
         ↓
-Desktop app development          ⛔ blocked
+Desktop app development          ⏳ next
         ↓
-Twitch connection                ⛔ blocked
+Twitch connection                ⏳ queued
         ↓
-Firebase Realtime Database       ⛔ blocked
+Firebase Realtime Database       ⏳ queued
         ↓
-AI moderation system             ⛔ blocked
+AI moderation system             ⏳ queued
         ↓
-Full automation                  ⛔ blocked
+Full automation                  ⏳ queued
         ↓
-Tests                            ⛔ blocked
+Tests                            ⏳ queued
         ↓
-Official release                 ⛔ blocked
+Official release                 ⏳ queued
 ```
 
 ## Milestones
@@ -40,12 +40,14 @@ Official release                 ⛔ blocked
 - [x] Security model ([SECURITY.md](./SECURITY.md))
 - [x] High-fidelity mockups: website (6 screens) + desktop app (4 screens)
 - [x] Rendered screenshots for review (`design/screenshots/`)
-- [ ] **Design validated at 100 %** ← gate for everything below
+- [x] AI Assistant command sidebar designed (docs + mockups) — requested addition
+- [x] **Design validated at 100 %** (2026-07-15) ← gate passed
 
-### M1 — Website
+### M1 — Website *(in progress)*
 Monorepo bootstrap (workspaces, TS strict, ESLint/Prettier, CI), `packages/ui`
 tokens from the validated design, marketing pages, download page, auth flow
-(Twitch → Vercel route → Firebase custom token), dashboard shell with mocked data.
+scaffolding (Twitch → Vercel route → Firebase custom token; wired live in M4),
+dashboard with demo data, AI Assistant panel UI.
 
 ### M2 — Desktop app shell
 Electron + Vite + React scaffold, hardened window, onboarding wizard with Twitch
@@ -67,7 +69,8 @@ ladder (both modes), severity bypass, review queue — shipping in "local-only" 
 
 ### M6 — AI system
 `packages/ai`: provider registry, Pollinations default, BYO providers, budget,
-cache, circuit breaker, fallback; ambiguity gate wired; explanations end-to-end.
+cache, circuit breaker, fallback; ambiguity gate wired; explanations end-to-end;
+AI Assistant command parsing (`interpretCommand`) + web command queue live.
 
 ### M7 — Automation & polish
 Auto start/stop on stream events, notifications, stats aggregation, empty states,

@@ -16,6 +16,8 @@ const shots = [
   { file: 'web/moderation.html', out: 'web-moderation.png', width: 1600, height: 1000, fullPage: true },
   { file: 'web/ai-providers.html', out: 'web-ai-providers.png', width: 1600, height: 1000, fullPage: true },
   { file: 'web/settings.html', out: 'web-settings.png', width: 1600, height: 1000, fullPage: true },
+  { file: 'web/dashboard-assistant.html', out: 'web-assistant.png', width: 1600, height: 1000, fullPage: false },
+  { file: 'desktop/assistant.html', out: 'desktop-assistant.png', width: 1440, height: 900, fullPage: true },
   { file: 'desktop/onboarding.html', out: 'desktop-onboarding.png', width: 1440, height: 900, fullPage: true },
   { file: 'desktop/main.html', out: 'desktop-main.png', width: 1440, height: 900, fullPage: true },
   { file: 'desktop/logs.html', out: 'desktop-logs.png', width: 1440, height: 900, fullPage: true },

@@ -204,7 +204,67 @@ Every category can be toggled and its threshold tuned per channel
 | Action round-trip (message → Twitch action, with AI) | < 3 s p95 |
 | Memory (10k-message context churn) | < 100 MB in the app |
 
-## 8. Testing strategy
+## 8. Manual actions — the AI Assistant
+
+Automatic moderation is the engine's job; the **AI Assistant** is the streamer's
+steering wheel. It converts plain-English commands into the same structured
+actions the pipeline emits, so manual and automatic moderation share one audit
+trail, one warning ladder and one undo model.
+
+### 8.1 Command model
+
+```ts
+interface CommandIntent {
+  action:
+    | "ban" | "unban" | "timeout" | "untimeout"
+    | "warn" | "unwarn" | "clear_strikes"
+    | "delete_messages" | "purge_user"
+    | "approve_review" | "remove_review"
+    | "add_banned_term" | "remove_banned_term"
+    | "add_trusted_domain" | "remove_trusted_domain"
+    | "set_link_policy" | "set_sensitivity" | "toggle_category" | "set_ai_budget"
+    | "exempt_user" | "unexempt_user"
+    | "query_user" | "query_stats" | "query_actions"
+    | "undo_last" | "unknown";
+  target?: string;              // Twitch login, resolved case-insensitively
+  durationSeconds?: number;     // timeouts
+  reason?: string;              // optional everywhere; default provided when absent
+  args?: Record<string, string>;
+  needsConfirmation: boolean;   // forced true for tier-2 actions
+  confidence: number;           // parser confidence 0..1
+  reply: string;                // assistant's English response shown in the panel
+}
+```
+
+Parsing is an AI task with a strict JSON schema
+([AI-PROVIDERS.md §7](./AI-PROVIDERS.md)); a local slash-grammar (`/ban user
+reason`, `/timeout user 10m`, `/unwarn user`, `/stats`) covers every action when
+the AI is unavailable.
+
+### 8.2 Risk tiers
+
+| Tier | Actions | Behavior |
+| --- | --- | --- |
+| 1 — reversible | warn, unwarn, clear strikes, timeout ≤ 24 h, untimeout, unban, delete/purge, review decisions, rule/sensitivity edits, queries | Execute immediately; result card with one-click **Undo** (inverse op stored per command) |
+| 2 — heavy | permanent ban, timeout > 24 h, mass actions (all-user strike resets), bulk term imports | Parsed card shown first; requires explicit **Confirm** |
+
+An "always ask before executing" toggle upgrades everything to tier 2. Ambiguous
+parses (confidence < 0.7, unknown target) never execute — the assistant asks a
+clarifying question instead.
+
+### 8.3 Execution paths
+
+- **Desktop app:** the panel talks to the local bot directly — parse and execute
+  in-process, instant.
+- **Web dashboard:** the raw command is queued in the session's `commands` node;
+  the bot polls it (ETag, ~3 s), parses, executes, and writes the result back —
+  the dashboard renders the same action card. Queue entries are capped and die
+  with the session ([DATABASE.md §2](./DATABASE.md)).
+- Commands appear in Moderation history with source **Manual · AI Assistant**,
+  with the same explanations as automatic decisions. Undo entries are valid for
+  the current session.
+
+## 9. Testing strategy
 
 - **Golden corpus** per category (clean, obvious, ambiguous, evasion variants) run
   against S1–S4 in unit tests — every rule change must keep the corpus green.
