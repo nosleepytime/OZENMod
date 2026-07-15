@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DOCS_URL } from '@ozenmod/shared';
 import { Brand } from '@/components/Brand';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { avatarGradient } from '@/lib/format';
 import { Icons } from './icons';
 
 const NAV = [
@@ -16,6 +18,9 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
+  const display = user?.displayName ?? user?.login ?? '—';
+  const initial = display.charAt(0).toUpperCase() || '?';
   return (
     <aside className="sidebar">
       <Link href="/">
@@ -39,12 +44,49 @@ export function Sidebar() {
       </a>
       <div className="nav-spacer" />
       <div className="nav-user">
-        <span className="avatar">P</span>
+        {user?.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.avatarUrl}
+            alt=""
+            width={30}
+            height={30}
+            style={{ borderRadius: '50%', flex: 'none' }}
+          />
+        ) : (
+          <span className="avatar" style={{ background: avatarGradient(display) }}>
+            {initial}
+          </span>
+        )}
         <div style={{ minWidth: 0 }}>
-          <b style={{ fontSize: 13, display: 'block' }}>pixelforge</b>
+          <b
+            style={{
+              fontSize: 13,
+              display: 'block',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {display}
+          </b>
           <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Free plan</span>
         </div>
-        <Icons.chevron className="ic" style={{ marginLeft: 'auto', color: 'var(--text-3)' }} />
+        <button
+          onClick={() => void signOut()}
+          title="Sign out"
+          aria-label="Sign out"
+          style={{
+            marginLeft: 'auto',
+            background: 'transparent',
+            border: 0,
+            color: 'var(--text-3)',
+            cursor: 'pointer',
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
+          <Icons.logout className="ic" />
+        </button>
       </div>
     </aside>
   );

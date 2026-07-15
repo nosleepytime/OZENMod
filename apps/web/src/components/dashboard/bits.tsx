@@ -1,5 +1,5 @@
 import type { ModerationEvent } from '@ozenmod/shared';
-import { avatarGradient } from '@/lib/demo-data';
+import { avatarGradient } from '@/lib/format';
 import { Icons } from './icons';
 
 export function Avatar({ login, small = true }: { login: string; small?: boolean }) {

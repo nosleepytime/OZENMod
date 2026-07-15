@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Check, Twitch } from 'lucide-react';
+import { Check, Twitch, TriangleAlert } from 'lucide-react';
 import { Brand } from '@/components/Brand';
 
 export const metadata: Metadata = {
@@ -8,7 +8,22 @@ export const metadata: Metadata = {
   description: 'Sign in to OZENMod with Twitch to manage your channel moderation.',
 };
 
-export default function LoginPage() {
+const ERRORS: Record<string, string> = {
+  invalid_state: 'Your sign-in session expired or was invalid. Please try again.',
+  twitch_not_configured: 'Twitch sign-in isn’t configured on this deployment yet.',
+  firebase_not_configured: 'The Firebase backend isn’t configured on this deployment yet.',
+  exchange_failed: 'Twitch declined the sign-in. Please try again.',
+  access_denied: 'You declined the authorization. Sign-in was cancelled.',
+};
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  const message = error ? (ERRORS[error] ?? 'Something went wrong during sign-in.') : null;
+
   return (
     <main className="login-bg">
       <div className="login-wrap">
@@ -20,16 +35,25 @@ export default function LoginPage() {
             <Brand size={18} />
           </Link>
           <div>
-            <h1 className="login-title">Welcome back</h1>
+            <h1 className="login-title">Sign in or create your account</h1>
             <p className="login-sub" style={{ marginTop: 6 }}>
-              Sign in to manage your channel&apos;s moderation, statistics and AI settings.
+              OZENMod uses your Twitch account as its identity — signing in the first time creates
+              your account automatically.
             </p>
           </div>
-          {/* In M4 this links to /api/auth/login (Twitch OAuth). For now it lands on the demo dashboard. */}
-          <Link className="btn btn-twitch btn-lg" style={{ width: '100%' }} href="/dashboard">
+
+          {message && (
+            <div className="note note-warn" style={{ width: '100%' }}>
+              <TriangleAlert className="ic" />
+              <span>{message}</span>
+            </div>
+          )}
+
+          {/* Real Twitch OAuth — the server route redirects to Twitch. */}
+          <a className="btn btn-twitch btn-lg" style={{ width: '100%' }} href="/api/auth/login">
             <Twitch className="ic ic-fill" fill="currentColor" strokeWidth={0} /> Continue with
             Twitch
-          </Link>
+          </a>
           <div className="scopes">
             <span className="row">
               <Check className="ic" /> We only request moderation scopes — nothing more

@@ -1,10 +1,9 @@
 /**
- * Twitch OAuth helpers for the website's Authorization Code flow.
- *
- * The full exchange (code → tokens → Firebase custom token) is wired in
- * milestone M4. These helpers build the authorize URL and read configuration
- * so the routes can already exist and degrade gracefully when the Twitch app
- * credentials are not set. The client secret is only ever read server-side.
+ * Twitch OAuth helpers for the website's Authorization Code flow
+ * (docs/ARCHITECTURE.md §5.1). Builds the authorize URL, exchanges the code for
+ * tokens, and reads the authenticated identity — all server-side, so the client
+ * secret never reaches the browser. Reads configuration lazily and degrades
+ * gracefully when the Twitch app credentials are not set.
  */
 import { TWITCH_SCOPES } from '@ozenmod/shared';
 
@@ -43,4 +42,46 @@ export function randomState(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export interface TwitchIdentity {
+  id: string;
+  login: string;
+  displayName: string;
+  avatarUrl: string;
+}
+
+/** Exchange an authorization code for an access token. Throws on failure. */
+export async function exchangeCode(config: TwitchOAuthConfig, code: string): Promise<string> {
+  const res = await fetch('https://id.twitch.tv/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: config.redirectUri,
+    }),
+  });
+  if (!res.ok) throw new Error(`Twitch token exchange failed: HTTP ${res.status}`);
+  const json = (await res.json()) as { access_token: string };
+  return json.access_token;
+}
+
+/** Read the authenticated Twitch user with an access token. Throws on failure. */
+export async function getTwitchIdentity(
+  config: TwitchOAuthConfig,
+  accessToken: string,
+): Promise<TwitchIdentity> {
+  const res = await fetch('https://api.twitch.tv/helix/users', {
+    headers: { Authorization: `Bearer ${accessToken}`, 'Client-Id': config.clientId },
+  });
+  if (!res.ok) throw new Error(`Twitch /users failed: HTTP ${res.status}`);
+  const json = (await res.json()) as {
+    data?: { id: string; login: string; display_name: string; profile_image_url: string }[];
+  };
+  const u = json.data?.[0];
+  if (!u) throw new Error('Twitch returned no user');
+  return { id: u.id, login: u.login, displayName: u.display_name, avatarUrl: u.profile_image_url };
 }

@@ -1,0 +1,26 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "channels": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "config": {
+          ".validate": "newData.hasChildren(['configVersion', 'updatedAt'])"
+        },
+        "profile": {
+          ".validate": "newData.hasChildren(['twitchUserId', 'login'])"
+        }
+      }
+    },
+
+    "sessions": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

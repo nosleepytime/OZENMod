@@ -1,36 +1,50 @@
 'use client';
 
-import { DEMO_CHANNEL } from '@/lib/demo-data';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { useChannelData } from '@/lib/useChannelData';
 import { useAssistant } from './AssistantContext';
 import { Icons } from './icons';
 
-export function Topbar({ title, showLive = true }: { title: string; showLive?: boolean }) {
+function elapsed(startedAt: number | null | undefined): string {
+  if (!startedAt) return '00:00:00';
+  const s = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
+}
+
+export function Topbar({ title }: { title: string }) {
   const { toggle } = useAssistant();
+  const { user } = useAuth();
+  const { online, status } = useChannelData();
+  const channel = user?.login ?? '—';
+
   return (
     <div className="topbar">
       <span className="topbar-title">{title}</span>
       <span className="divider-v" />
-      {showLive && (
-        <span className="chip chip-danger">
-          <span className="dot pulse" /> LIVE
-        </span>
+      {online ? (
+        <>
+          <span className="chip chip-danger">
+            <span className="dot pulse" /> LIVE
+          </span>
+          <span className="chip">
+            <Icons.clock className="ic ic-sm" /> {elapsed(status?.startedAt)}
+          </span>
+        </>
+      ) : (
+        <span className="chip">Offline</span>
       )}
-      <span className="chip">#{DEMO_CHANNEL.login}</span>
-      {showLive && (
-        <span className="chip">
-          <Icons.clock className="ic ic-sm" /> Session {DEMO_CHANNEL.sessionTime}
-        </span>
-      )}
-      <span
-        className="chip chip-warn"
-        title="This dashboard shows demo data until Firebase is connected (milestone M4)."
-      >
-        <Icons.info className="ic ic-sm" /> Demo data
-      </span>
+      <span className="chip">#{channel}</span>
       <span className="grow" />
-      <span className="chip chip-good">
-        <span className="dot" /> Bot online · desktop app
-      </span>
+      {online ? (
+        <span className="chip chip-good">
+          <span className="dot" /> Bot online
+        </span>
+      ) : (
+        <span className="chip" title="Open the desktop app and start the bot to go live.">
+          <span className="dot" /> Bot offline
+        </span>
+      )}
       <button className="btn btn-primary btn-sm" onClick={toggle}>
         <Icons.sparkles className="ic ic-sm" /> Ask AI
       </button>
@@ -41,7 +55,6 @@ export function Topbar({ title, showLive = true }: { title: string; showLive?: b
       >
         <Icons.bell className="ic" />
       </button>
-      <span className="avatar avatar-sm">P</span>
     </div>
   );
 }

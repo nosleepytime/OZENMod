@@ -31,6 +31,7 @@ import {
   Info,
   Trash2,
   Twitch,
+  LogOut,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -65,4 +66,5 @@ export const Icons = {
   info: Info,
   trash: Trash2,
   twitch: Twitch,
+  logout: LogOut,
 } satisfies Record<string, LucideIcon>;
