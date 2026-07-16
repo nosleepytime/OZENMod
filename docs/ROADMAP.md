@@ -16,17 +16,17 @@ Website development              ✅ done (M1 — apps/web)
         ↓
 Desktop app development          ✅ done (M2 — apps/desktop)
         ↓
-Twitch connection                ✅ done (M3 — packages/twitch)  ← we are here
+Twitch connection                ✅ done (M3 — packages/twitch)
         ↓
-Firebase Realtime Database       🔨 next (M4)
+Firebase + real auth             ✅ done (M4 — packages/database, sign in/up)
         ↓
-AI moderation system             ⏳ queued
+Moderation engine                ✅ done (M5 — packages/core, no demo)
         ↓
-Full automation                  ⏳ queued
+Live desktop ↔ web sync          ✅ done (M6 — session mirrored to Firebase)
         ↓
-Tests                            ⏳ queued
+AI escalation (S5)               ✅ done (M7 — Pollinations on the band)
         ↓
-Official release                 ⏳ queued
+Official release                 🔨 tooling ready — awaiting the v0.1.0 tag  ← we are here
 ```
 
 ## Milestones
@@ -72,34 +72,45 @@ until the engine lands in M5) with a token vault (`safeStorage`) and a demo
 fallback when unconfigured. **48 unit tests** across the AI + Twitch packages.
 **Done** — `packages/twitch`.
 
-### M4 — Firebase integration
+### M4 — Firebase integration & real auth ✅
 
-`packages/database`: schema types, REST writer, ETag config poller, session
-lifecycle with automatic cleanup + crash sweep; dashboard reads real data;
-security rules deployed and tested.
+`packages/database`: schema types, REST client with ETag config polling, session
+lifecycle with automatic cleanup. Real sign-in (Twitch Authorization Code →
+Firebase custom token), auth-gated dashboard, and a config editor that persists
+to RTDB — every page reads real data with real empty states (no demo). Security
+rules (`database.rules.json`) scope each streamer to their own data; `SETUP.md`
+documents the whole setup. **Done** — `packages/database`, `apps/web` auth.
 
-### M5 — Moderation engine
+### M5 — Moderation engine ✅
 
-`packages/core`: S0–S4 stages with golden-corpus tests, decision engine, warning
-ladder (both modes), severity bypass, review queue — shipping in "local-only" mode.
+`packages/core`: S1 normalization (evasion folding), S2 deterministic rules, S3
+heuristic scoring, S4 ambiguity gate, and the S6 decision engine (severity
+bypass, warning ladder both modes, cooldowns, review). Explainable throughout,
+28 unit tests. Wired into the desktop `BotRuntime`, which moderates real chat
+end-to-end — the demo session is gone. **Done** — `packages/core`.
 
-### M6 — AI system
+### M6 — Live desktop ↔ web sync ✅
 
-`packages/ai`: provider registry, Pollinations default, BYO providers, budget,
-cache, circuit breaker, fallback; ambiguity gate wired; explanations end-to-end;
-AI Assistant command parsing (`interpretCommand`) + web command queue live.
+The running desktop bot mirrors its session to Firebase (status, counters,
+events, review, warnings) so the web dashboard updates live, and polls config so
+dashboard edits reach the bot. Token exchange via `/api/auth/desktop` +
+`IdentityToolkit`/`TokenManager` + `SessionWriter`, all tested. **Done**.
 
-### M7 — Automation & polish
+### M7 — AI escalation & automation ✅
 
-Auto start/stop on stream events, notifications, stats aggregation, empty states,
-error states, accessibility pass, performance pass against the targets in
-[MODERATION.md §7](./MODERATION.md).
+`packages/ai` provider registry + Pollinations default wired into the engine's
+ambiguity gate (S5): the desktop `AiEscalator` judges band messages with the AI
+budget, soft timeout, circuit breaker and local fallback. Auto start/stop on
+stream events via EventSub. AI Assistant command parsing shared web + desktop.
+**Done.** Remaining polish (BYO-provider keys for auto-escalation, web command
+queue, stats aggregation, a11y/perf passes) tracked for follow-ups.
 
-### M8 — Tests & release
+### M8 — Release 🔨
 
-Cross-package integration tests, evasion fuzzing, manual test matrix
-(Windows/macOS), `release.yml` producing installers + checksums, docs site pages,
-**v0.1.0** GitHub Release.
+`release.yml` builds Windows + macOS installers on a `v*` tag and publishes a
+review-first draft release; the desktop build bakes in the distribution config
+from repository secrets ([RELEASING.md](../RELEASING.md)). Awaiting the
+`TWITCH_CLIENT_ID` secret and the **v0.1.0** tag to cut the first release.
 
 ## Versioning
 
