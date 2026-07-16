@@ -254,10 +254,37 @@ export class ModerationEngine {
       return commit(decide(signal, session, this.cfg, now), signal, risk);
     }
 
-    // g === 'escalate' — resolve locally with the fallback policy, flag for AI.
+    // g === 'escalate' — flag for AI and return the local fallback as a preview.
+    // The decision is NOT committed here: the runtime either asks the AI and
+    // commits its verdict (judgeWithVerdict), or commits the fallback
+    // (resolveFallback) when the AI is unavailable or over budget.
+    return finish({
+      decision: this.fallback(signal, session, now).decision,
+      escalateToAI: true,
+      signal,
+      scores: sc.scores,
+      aggregate: risk,
+    });
+  }
+
+  private applyStrikes(session: UserSession, result: DecisionResult, now: number): void {
+    const acted =
+      result.decision.action !== 'allow' &&
+      result.decision.action !== 'ignore' &&
+      result.decision.action !== 'review';
+    session.strikes = result.nextStrikes;
+    if (acted) session.lastActionAt = now;
+  }
+
+  /**
+   * Commit the local fallback for an escalated message — used when the AI is
+   * unavailable or over budget (S4 → S6 without S5).
+   */
+  resolveFallback(msg: IncomingMessage, signal: Signal, now: number = Date.now()): Decision {
+    const session = this.getSession(msg.login, now);
     const result = this.fallback(signal, session, now);
-    const analysis = commit(result, signal, risk);
-    return { ...analysis, escalateToAI: true, scores: sc.scores };
+    this.applyStrikes(session, result, now);
+    return result.decision;
   }
 
   /** Fallback policy used when the AI is unavailable or over budget. */
@@ -287,8 +314,7 @@ export class ModerationEngine {
       return allowDecision(verdict.reason || 'Allowed by AI review');
     }
     const result = decide(verdictSignal(verdict), session, this.cfg, now);
-    session.strikes = result.nextStrikes;
-    if (result.decision.action !== 'review') session.lastActionAt = now;
+    this.applyStrikes(session, result, now);
     return result.decision;
   }
 }

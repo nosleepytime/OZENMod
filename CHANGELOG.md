@@ -8,6 +8,15 @@ Versioning: [SemVer](https://semver.org/).
 
 ### Added
 
+- **Live AI escalation (milestone M7 / pipeline S5)** — the desktop bot now
+  asks the AI to judge the ambiguity-band messages the engine flags, instead of
+  always taking the local fallback. The engine defers its commit on the escalate
+  path, so the AI verdict (or the fallback, when the AI is unavailable) is what
+  actually decides and progresses the warning ladder. A new desktop `AiEscalator`
+  calls the free, keyless Pollinations provider with the per-minute AI budget, a
+  soft timeout, and a circuit breaker so chat never blocks on the AI; only
+  genuinely ambiguous messages ever reach it (≈local-first, ≥95% resolved without
+  a call). Covered by new engine tests for the deferred-commit flow.
 - **Live desktop ↔ web sync (milestone M6)** — the running desktop bot now
   mirrors its session to Firebase so the web dashboard updates in real time.
   The desktop has no server secret: it posts its Twitch token to the web app's

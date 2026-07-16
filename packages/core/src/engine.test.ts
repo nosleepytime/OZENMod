@@ -162,6 +162,68 @@ describe('S4 ambiguity gate', () => {
   });
 });
 
+describe('S5 AI escalation (deferred commit)', () => {
+  it('does not commit strikes on the escalate path until resolved', () => {
+    const e = engine((c) => {
+      c.moderation.firstTimeChatterBoost = false;
+    });
+    const a = e.analyze(msg('this whole game is stupid honestly', { login: 'x' }));
+    expect(a.escalateToAI).toBe(true);
+    // The preview is not committed — no strike yet.
+    expect(e.getSession('x').strikes).toBe(0);
+  });
+
+  it('commits the AI verdict through the ladder', () => {
+    const e = engine((c) => {
+      c.moderation.firstTimeChatterBoost = false;
+    });
+    const m = msg('this whole game is stupid honestly', { login: 'x' });
+    const a = e.analyze(m);
+    expect(a.escalateToAI).toBe(true);
+    const decision = e.judgeWithVerdict(m, {
+      action: 'warn',
+      category: 'harassment',
+      severity: 1,
+      confidence: 0.9,
+      reason: 'Mild insult toward the game, not a person',
+    });
+    expect(decision.action).toBe('warn');
+    expect(decision.source).toBe('ai');
+    expect(e.getSession('x').strikes).toBe(1);
+  });
+
+  it('an AI "allow" verdict clears the message with no strike', () => {
+    const e = engine((c) => {
+      c.moderation.firstTimeChatterBoost = false;
+    });
+    const m = msg('this whole game is stupid honestly', { login: 'x' });
+    e.analyze(m);
+    const decision = e.judgeWithVerdict(m, {
+      action: 'allow',
+      category: 'none',
+      severity: 0,
+      confidence: 0.95,
+      reason: 'Frustration at the game, not an attack',
+    });
+    expect(decision.action).toBe('allow');
+    expect(e.getSession('x').strikes).toBe(0);
+  });
+
+  it('resolveFallback commits the configured local fallback (conservative → review)', () => {
+    const e = engine((c) => {
+      c.moderation.firstTimeChatterBoost = false;
+      c.ai.fallback = 'conservative-local';
+    });
+    const m = msg('this whole game is stupid honestly', { login: 'x' });
+    const a = e.analyze(m);
+    expect(a.escalateToAI).toBe(true);
+    const decision = e.resolveFallback(m, a.signal);
+    // A borderline high-risk message with no AI goes to human review, no strike.
+    expect(decision.action).toBe('review');
+    expect(e.getSession('x').strikes).toBe(0);
+  });
+});
+
 describe('reset', () => {
   it('clears session strikes at stream end', () => {
     const e = engine();

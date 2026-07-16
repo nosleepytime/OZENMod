@@ -10,11 +10,12 @@
  * connected, and asks the streamer to connect when it is not.
  */
 import { EventEmitter } from 'node:events';
-import { parseCommand, actionMeta } from '@ozenmod/ai';
+import { parseCommand, actionMeta, type ModerationRequest } from '@ozenmod/ai';
 import type { ChatMessage, HelixAction, StreamEvent } from '@ozenmod/twitch';
 import type { CommandIntent, ModerationEvent, ReviewItem } from '@ozenmod/shared';
 import {
   ModerationEngine,
+  type Analysis,
   type ChatRole,
   type Decision,
   type IncomingMessage,
@@ -28,6 +29,7 @@ import {
 import type { BotState, BotStatus, CommandResult, LogEntry, SystemInfo } from '../ipc-contract';
 import type { LiveConnector } from './twitch-live';
 import { createFirebaseSync, type FirebaseSync } from './firebase-sync';
+import { createAiEscalator, type AiEscalator } from './ai-escalator';
 
 export class BotRuntime extends EventEmitter {
   private state: BotState = 'idle';
@@ -38,6 +40,7 @@ export class BotRuntime extends EventEmitter {
   private readonly connector: LiveConnector | null;
   private readonly engine = new ModerationEngine(defaultConfig());
   private readonly sync: FirebaseSync;
+  private readonly ai: AiEscalator;
   private logs: LogEntry[] = [];
   private feed: ModerationEvent[] = [];
   private review: ReviewItem[] = [];
@@ -51,6 +54,7 @@ export class BotRuntime extends EventEmitter {
       onLog: (level, message) => this.log(level, message),
       onConfig: (config) => this.engine.setConfig(config),
     });
+    this.ai = createAiEscalator((level, message) => this.log(level, message));
   }
 
   private get live(): boolean {
@@ -78,7 +82,8 @@ export class BotRuntime extends EventEmitter {
         ai: true,
         eventSub: this.state === 'protecting',
         aiLatencyMs: 0,
-        aiProvider: 'Local-first',
+        aiProvider:
+          this.engine.config.ai.provider === 'pollinations' ? 'Pollinations' : 'Local-first',
       },
       stats: this.statSummary(),
       appVersion: this.appVersion,
@@ -165,9 +170,58 @@ export class BotRuntime extends EventEmitter {
   /** A real chat message arrived — run it through the moderation engine. */
   private onChatMessage(message: ChatMessage): void {
     this.counters.messages += 1;
-    const analysis = this.engine.analyze(toIncoming(message), message.timestamp || Date.now());
-    const decision = analysis.decision;
+    const incoming = toIncoming(message);
+    const now = message.timestamp || Date.now();
+    const analysis = this.engine.analyze(incoming, now);
 
+    // S5 — ambiguous messages are judged by the AI before committing.
+    if (analysis.escalateToAI && this.ai.available(this.engine.config)) {
+      void this.escalate(message, incoming, analysis, now);
+      return;
+    }
+
+    // Not escalating: the local decision is already committed. When the message
+    // was flagged but the AI is unavailable, commit the local fallback instead.
+    const decision = analysis.escalateToAI
+      ? this.engine.resolveFallback(incoming, analysis.signal, now)
+      : analysis.decision;
+    this.applyDecision(message, decision);
+  }
+
+  private async escalate(
+    message: ChatMessage,
+    incoming: IncomingMessage,
+    analysis: Analysis,
+    now: number,
+  ): Promise<void> {
+    const verdict = await this.ai.judge(this.buildRequest(incoming), this.engine.config);
+    let decision: Decision;
+    if (verdict) {
+      this.counters.aiCalls += 1;
+      decision = this.engine.judgeWithVerdict(incoming, verdict, now);
+    } else {
+      decision = this.engine.resolveFallback(incoming, analysis.signal, now);
+    }
+    this.applyDecision(message, decision);
+  }
+
+  private buildRequest(incoming: IncomingMessage): ModerationRequest {
+    const session = this.engine.getSession(incoming.login);
+    return {
+      channelRules:
+        'Standard Twitch channel: no harassment, hate, threats, sexual content, spam, scams or advertising. Casual banter and profanity not aimed at anyone are allowed.',
+      context: [],
+      message: { userDisplay: incoming.displayName, text: incoming.text },
+      userState: {
+        strikes: session.strikes,
+        maxStrikes: this.engine.config.warnings.maxStrikes,
+        firstTimeChatter: session.messageTimestamps.length <= 1,
+      },
+    };
+  }
+
+  /** Apply a committed decision: counters, enforcement, feed, logs and sync. */
+  private applyDecision(message: ChatMessage, decision: Decision): void {
     if (decision.action === 'allow' || decision.action === 'ignore') {
       if (this.counters.messages % 10 === 0) {
         this.sync.setCounters(this.counters);
