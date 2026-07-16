@@ -37,6 +37,11 @@ jobs:
         run: npm run package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Baked into the build so installers can connect out of the box.
+          # Optional: unset secrets simply produce a build that asks the user to
+          # connect and disables live sync (see RELEASING.md).
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          OZENMOD_WEB_URL: ${{ secrets.OZENMOD_WEB_URL }}
 
       - name: Generate checksums
         shell: bash
