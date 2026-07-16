@@ -8,6 +8,19 @@ Versioning: [SemVer](https://semver.org/).
 
 ### Added
 
+- **Live desktop ↔ web sync (milestone M6)** — the running desktop bot now
+  mirrors its session to Firebase so the web dashboard updates in real time.
+  The desktop has no server secret: it posts its Twitch token to the web app's
+  new `/api/auth/desktop` endpoint, which verifies the identity and returns a
+  Firebase custom token scoped to the channel. `packages/database` gains a
+  fetch-injected `IdentityToolkit`/`TokenManager` (custom token → ID token with
+  refresh), a `SessionWriter` (status, counters, recent events, review queue,
+  warnings, plus finalize + cleanup), and `exchangeDesktopToken`, all
+  unit-tested. The bot writes a heartbeat and debounced counters, pushes each
+  moderation event, and polls channel config over ETag so dashboard edits take
+  effect live; at stream end it finalizes the summary, merges lifetime stats,
+  and deletes the temporary session node. Sync is optional and a no-op when the
+  web URL or Twitch token is absent.
 - **Moderation engine (milestone M5)** — `packages/core`, the local-first brain,
   pure and unit-tested (24 cases). Normalization defeats evasion (Unicode/NFKC
   fold, homoglyphs, leetspeak, zero-width stripping, elongation and separator
@@ -80,6 +93,7 @@ Versioning: [SemVer](https://semver.org/).
   pull request templates.
 
 > Design approved on 2026-07-15. Milestones M1 (website), M2 (desktop app),
-> M3 (Twitch integration), M4 (Firebase auth + live dashboard) and M5 (local
-> moderation engine) are implemented; next is live AI escalation and desktop →
-> Firebase session sync — see [docs/ROADMAP.md](docs/ROADMAP.md).
+> M3 (Twitch integration), M4 (Firebase auth + live dashboard), M5 (local
+> moderation engine) and M6 (live desktop ↔ web sync) are implemented — the
+> product loop is now real end-to-end. Next is live AI escalation (S5) and the
+> first tagged release — see [docs/ROADMAP.md](docs/ROADMAP.md).

@@ -2,8 +2,9 @@
  * BotRuntime — the orchestrator the desktop main process owns (the "local
  * runtime" of docs/ARCHITECTURE.md §9). It connects real Twitch chat through the
  * injected LiveConnector, runs every message through the local moderation engine
- * (@ozenmod/core), performs the decided Twitch action, and keeps the session
- * counters, feed, review queue and logs the UI renders.
+ * (@ozenmod/core), performs the decided Twitch action, keeps the session
+ * counters, feed, review queue and logs the UI renders, and mirrors the live
+ * session to Firebase so the web dashboard updates in real time.
  *
  * There is no demo mode: the app moderates real chat once a Twitch account is
  * connected, and asks the streamer to connect when it is not.
@@ -18,9 +19,15 @@ import {
   type Decision,
   type IncomingMessage,
 } from '@ozenmod/core';
-import { defaultConfig } from '@ozenmod/database';
+import {
+  defaultConfig,
+  EMPTY_COUNTERS,
+  type RecentEvent,
+  type SessionCounters,
+} from '@ozenmod/database';
 import type { BotState, BotStatus, CommandResult, LogEntry, SystemInfo } from '../ipc-contract';
 import type { LiveConnector } from './twitch-live';
+import { createFirebaseSync, type FirebaseSync } from './firebase-sync';
 
 export class BotRuntime extends EventEmitter {
   private state: BotState = 'idle';
@@ -30,19 +37,34 @@ export class BotRuntime extends EventEmitter {
   private readonly appVersion: string;
   private readonly connector: LiveConnector | null;
   private readonly engine = new ModerationEngine(defaultConfig());
+  private readonly sync: FirebaseSync;
   private logs: LogEntry[] = [];
   private feed: ModerationEvent[] = [];
   private review: ReviewItem[] = [];
-  private stats = { messages: 0, actions: 0, aiCalls: 0, reviewPending: 0 };
+  private counters: SessionCounters = { ...EMPTY_COUNTERS };
 
   constructor(appVersion: string, connector: LiveConnector | null = null) {
     super();
     this.appVersion = appVersion;
     this.connector = connector;
+    this.sync = createFirebaseSync({
+      onLog: (level, message) => this.log(level, message),
+      onConfig: (config) => this.engine.setConfig(config),
+    });
   }
 
   private get live(): boolean {
     return this.connector?.isConfigured() ?? false;
+  }
+
+  private statSummary() {
+    const c = this.counters;
+    return {
+      messages: c.messages,
+      actions: c.deleted + c.timeouts + c.bans + c.warningsIssued,
+      aiCalls: c.aiCalls,
+      reviewPending: this.review.length,
+    };
   }
 
   getStatus(): BotStatus {
@@ -58,7 +80,7 @@ export class BotRuntime extends EventEmitter {
         aiLatencyMs: 0,
         aiProvider: 'Local-first',
       },
-      stats: { ...this.stats },
+      stats: this.statSummary(),
       appVersion: this.appVersion,
     };
   }
@@ -109,8 +131,10 @@ export class BotRuntime extends EventEmitter {
       .then(() => {
         this.sessionStartedAt = Date.now();
         this.engine.reset();
+        this.counters = { ...EMPTY_COUNTERS };
         this.setState('protecting');
         this.log('info', `Protecting #${this.channel || 'your channel'} — analyzing chat locally`);
+        void this.sync.begin(this.appVersion);
       })
       .catch((err: unknown) => {
         this.log('error', `Failed to connect: ${err instanceof Error ? err.message : String(err)}`);
@@ -121,15 +145,17 @@ export class BotRuntime extends EventEmitter {
 
   stop(): BotStatus {
     if (this.state === 'idle') return this.getStatus();
+    const startedAt = this.sessionStartedAt ?? Date.now();
     this.setState('stopping');
     if (this.live) this.connector?.stop();
     this.log('info', 'Finalizing session — writing summary, clearing temporary data');
-    // Temporary session data (warnings, counters) is discarded at stream end.
+    // Finalize the summary + lifetime aggregates, then discard temporary data.
+    void this.sync.finalize(startedAt, this.counters);
     this.engine.reset();
     this.review = [];
-    this.stats.reviewPending = 0;
     setTimeout(() => {
       this.sessionStartedAt = null;
+      this.counters = { ...EMPTY_COUNTERS };
       this.setState('idle');
       this.log('info', 'Session ended — temporary warnings and counters deleted');
     }, 300);
@@ -138,16 +164,20 @@ export class BotRuntime extends EventEmitter {
 
   /** A real chat message arrived — run it through the moderation engine. */
   private onChatMessage(message: ChatMessage): void {
-    this.stats.messages += 1;
+    this.counters.messages += 1;
     const analysis = this.engine.analyze(toIncoming(message), message.timestamp || Date.now());
     const decision = analysis.decision;
 
     if (decision.action === 'allow' || decision.action === 'ignore') {
-      if (this.stats.messages % 10 === 0) this.emit('status', this.getStatus());
+      if (this.counters.messages % 10 === 0) {
+        this.sync.setCounters(this.counters);
+        this.emit('status', this.getStatus());
+      }
       return;
     }
 
     if (decision.action === 'review') {
+      this.counters.reviewed += 1;
       const item: ReviewItem = {
         id: message.id || `rv-${Date.now()}`,
         at: message.timestamp || Date.now(),
@@ -157,18 +187,34 @@ export class BotRuntime extends EventEmitter {
         confidence: decision.confidence,
       };
       this.review = [item, ...this.review].slice(0, 50);
-      this.stats.reviewPending = this.review.length;
       this.emit('review', item);
+      this.sync.review({
+        t: item.at,
+        user: item.userLogin,
+        category: decision.category,
+        confidence: decision.confidence,
+        suggested: decision.categoryLabel,
+        ...(item.snippet ? { snippet: item.snippet } : {}),
+      });
     } else {
-      this.stats.actions += 1;
+      this.bumpActionCounter(decision.action);
       if (this.live) void this.performDecision(decision, message.userId, message.id);
+      this.sync.event(this.toRecent(message, decision));
     }
 
     const event = this.toEvent(message, decision);
     this.feed = [event, ...this.feed].slice(0, 50);
     this.emit('feed', event);
+    this.sync.setCounters(this.counters);
     this.log('action', `${decision.actionLabel} — @${message.login}: ${decision.reason}`);
     this.emit('status', this.getStatus());
+  }
+
+  private bumpActionCounter(action: Decision['action']): void {
+    if (action === 'delete') this.counters.deleted += 1;
+    else if (action === 'timeout') this.counters.timeouts += 1;
+    else if (action === 'ban') this.counters.bans += 1;
+    else if (action === 'warn') this.counters.warningsIssued += 1;
   }
 
   private onStreamEvent(event: StreamEvent): void {
@@ -201,7 +247,15 @@ export class BotRuntime extends EventEmitter {
     const meta = actionMeta(intent);
     const isQuery = intent.action.startsWith('query') || intent.action === 'undo_last';
     if (!isQuery) {
-      this.stats.actions += 1;
+      const mapped: Decision['action'] =
+        intent.action === 'ban'
+          ? 'ban'
+          : intent.action === 'timeout'
+            ? 'timeout'
+            : intent.action === 'warn'
+              ? 'warn'
+              : 'ignore';
+      this.bumpActionCounter(mapped);
       const event: ModerationEvent = {
         id: `cmd-${Date.now()}`,
         at: Date.now(),
@@ -209,20 +263,24 @@ export class BotRuntime extends EventEmitter {
         userDisplay: intent.target ?? 'channel',
         category: 'none',
         categoryLabel: 'Manual',
-        action:
-          intent.action === 'ban'
-            ? 'ban'
-            : intent.action === 'timeout'
-              ? 'timeout'
-              : intent.action === 'warn'
-                ? 'warn'
-                : 'ignore',
+        action: mapped,
         actionLabel: meta.title,
         source: 'manual',
         reason: intent.reason ?? 'Manual action via AI Assistant',
       };
       this.feed = [event, ...this.feed].slice(0, 50);
       this.emit('feed', event);
+      if (mapped !== 'ignore') {
+        this.sync.event({
+          t: event.at,
+          user: event.userLogin,
+          action: mapped,
+          category: 'none',
+          reason: event.reason,
+          source: 'manual',
+        });
+        this.sync.setCounters(this.counters);
+      }
       if (this.live) void this.applyIntentAction(intent);
     }
     this.log('action', `${meta.title} via AI Assistant — ${intent.target ?? 'channel'}`);
@@ -261,7 +319,7 @@ export class BotRuntime extends EventEmitter {
     }
     for (const action of actions) {
       const res = await this.connector.perform(action);
-      if (!res.ok) this.log('warn', `Twitch ${action.type} on @${decision.category} did not apply`);
+      if (!res.ok) this.log('warn', `Twitch ${action.type} did not apply`);
     }
   }
 
@@ -311,6 +369,18 @@ export class BotRuntime extends EventEmitter {
     };
   }
 
+  private toRecent(message: ChatMessage, decision: Decision): RecentEvent {
+    return {
+      t: message.timestamp || Date.now(),
+      user: message.login,
+      action: decision.action,
+      category: decision.category,
+      reason: decision.reason,
+      source: decision.source === 'manual' ? 'manual' : decision.source,
+      ...(decision.strike ? { strike: decision.strike } : {}),
+    };
+  }
+
   private setState(state: BotState) {
     this.state = state;
     this.emit('status', this.getStatus());
@@ -323,6 +393,7 @@ export class BotRuntime extends EventEmitter {
   }
 
   dispose() {
+    this.sync.stop();
     this.removeAllListeners();
   }
 }

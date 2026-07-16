@@ -182,9 +182,22 @@ Prebuilt Windows and macOS installers are attached to each
 [GitHub release](https://github.com/nosleepytime/ozenmod/releases).
 
 On first launch the app walks you through connecting your Twitch account (device
-code flow — no secret needed on the desktop) and points it at the same Firebase
-project. Once connected, the desktop bot writes live session data to Firebase and
-your dashboard lights up in real time.
+code flow — no secret needed on the desktop). The desktop never sees your
+Firebase secret: it sends its Twitch token to your web app's `/api/auth/desktop`
+endpoint, which verifies it and returns a Firebase token scoped to your channel.
+Point the app at your deployed web app so it knows where to ask:
+
+```bash
+# the base URL of your deployed OZENMod web app
+OZENMOD_WEB_URL=https://your-app.vercel.app
+# the Twitch client id this build uses for the device-code flow
+TWITCH_CLIENT_ID=your-twitch-client-id
+```
+
+Once connected and started, the desktop bot analyzes chat locally, performs the
+decided Twitch actions, and mirrors the live session (status, counters, events,
+review queue) to Firebase — so your web dashboard lights up in real time and your
+settings changes flow back to the bot.
 
 ---
 

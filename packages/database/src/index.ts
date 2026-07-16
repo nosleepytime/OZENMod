@@ -11,3 +11,9 @@ export {
 } from './session-lifecycle';
 export { RestClient } from './rest-client';
 export type { RestClientOptions, ConfigPollResult } from './rest-client';
+export { IdentityToolkit, TokenManager } from './identity';
+export type { IdSession, IdentityOptions } from './identity';
+export { SessionWriter } from './session-writer';
+export type { RtdbLike } from './session-writer';
+export { exchangeDesktopToken } from './desktop-auth';
+export type { DesktopAuth, DesktopProfile, ExchangeOptions } from './desktop-auth';
