@@ -6,6 +6,12 @@ Versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-16
+
+First public release: the full product loop is real end-to-end — sign in with
+Twitch, moderate live chat locally with AI escalation on ambiguous messages, and
+watch it on the web dashboard in real time. English-only, free to run.
+
 ### Added
 
 - **Live AI escalation (milestone M7 / pipeline S5)** — the desktop bot now
@@ -103,6 +109,6 @@ Versioning: [SemVer](https://semver.org/).
 
 > Design approved on 2026-07-15. Milestones M1 (website), M2 (desktop app),
 > M3 (Twitch integration), M4 (Firebase auth + live dashboard), M5 (local
-> moderation engine) and M6 (live desktop ↔ web sync) are implemented — the
-> product loop is now real end-to-end. Next is live AI escalation (S5) and the
-> first tagged release — see [docs/ROADMAP.md](docs/ROADMAP.md).
+> moderation engine), M6 (live desktop ↔ web sync) and M7 (live AI escalation)
+> are implemented — the product loop is real end-to-end, released as **v0.1.0**.
+> See [docs/ROADMAP.md](docs/ROADMAP.md).
