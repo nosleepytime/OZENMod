@@ -51,52 +51,52 @@ export function Sidebar() {
         <a className="nav-item" href={DOCS_URL} target="_blank" rel="noreferrer">
           <Icons.code className="ic" /> Documentation
         </a>
-      <div className="nav-spacer" />
-      <div className="nav-user">
-        {user?.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={user.avatarUrl}
-            alt=""
-            width={30}
-            height={30}
-            style={{ borderRadius: '50%', flex: 'none' }}
-          />
-        ) : (
-          <span className="avatar" style={{ background: avatarGradient(display) }}>
-            {initial}
-          </span>
-        )}
-        <div style={{ minWidth: 0 }}>
-          <b
+        <div className="nav-spacer" />
+        <div className="nav-user">
+          {user?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.avatarUrl}
+              alt=""
+              width={30}
+              height={30}
+              style={{ borderRadius: '50%', flex: 'none' }}
+            />
+          ) : (
+            <span className="avatar" style={{ background: avatarGradient(display) }}>
+              {initial}
+            </span>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <b
+              style={{
+                fontSize: 13,
+                display: 'block',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {display}
+            </b>
+            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Free plan</span>
+          </div>
+          <button
+            onClick={() => void signOut()}
+            title="Sign out"
+            aria-label="Sign out"
             style={{
-              fontSize: 13,
-              display: 'block',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              marginLeft: 'auto',
+              background: 'transparent',
+              border: 0,
+              color: 'var(--text-3)',
+              cursor: 'pointer',
+              display: 'grid',
+              placeItems: 'center',
             }}
           >
-            {display}
-          </b>
-          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Free plan</span>
+            <Icons.logout className="ic" />
+          </button>
         </div>
-        <button
-          onClick={() => void signOut()}
-          title="Sign out"
-          aria-label="Sign out"
-          style={{
-            marginLeft: 'auto',
-            background: 'transparent',
-            border: 0,
-            color: 'var(--text-3)',
-            cursor: 'pointer',
-            display: 'grid',
-            placeItems: 'center',
-          }}
-        >
-          <Icons.logout className="ic" />
-        </button>
-      </div>
       </aside>
     </>
   );

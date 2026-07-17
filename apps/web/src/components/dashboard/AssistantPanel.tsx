@@ -13,6 +13,12 @@ interface Turn {
   intent: CommandIntent;
   /** pending → tier-2 waiting for confirm; done → executed; cancelled/undone. */
   status: 'pending' | 'done' | 'cancelled' | 'undone';
+  /** Present when the input was a question answered by the AI research loop. */
+  research?: {
+    loading: boolean;
+    answer: string;
+    sources: { title: string; url: string }[];
+  };
 }
 
 const SUGGESTIONS = [
@@ -61,9 +67,50 @@ export function AssistantPanel() {
     const command = raw.trim();
     if (!command) return;
     const intent = parseCommand(command);
+    setInput('');
+
+    // Not a moderation command → answer it with the AI research loop.
+    if (intent.action === 'unknown') {
+      const id = nextId++;
+      setTurns((t) => [
+        ...t,
+        {
+          id,
+          command,
+          intent,
+          status: 'done',
+          research: { loading: true, answer: '', sources: [] },
+        },
+      ]);
+      void ask(id, command);
+      return;
+    }
+
     const status: Turn['status'] = intent.needsConfirmation ? 'pending' : 'done';
     setTurns((t) => [...t, { id: nextId++, command, intent, status }]);
-    setInput('');
+  }
+
+  async function ask(id: number, question: string) {
+    const patch = (research: NonNullable<Turn['research']>) =>
+      setTurns((t) => t.map((turn) => (turn.id === id ? { ...turn, research } : turn)));
+    try {
+      const res = await fetch('/api/assistant/ask', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ request: question }),
+      });
+      const data = (await res.json()) as {
+        answer?: string;
+        sources?: { title: string; url: string }[];
+      };
+      patch({
+        loading: false,
+        answer: data.answer ?? 'No answer.',
+        sources: Array.isArray(data.sources) ? data.sources : [],
+      });
+    } catch {
+      patch({ loading: false, answer: 'The assistant is unavailable right now.', sources: [] });
+    }
   }
 
   function resolve(id: number, status: Turn['status']) {
@@ -136,7 +183,7 @@ export function AssistantPanel() {
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything — ban, timeout, warn, unwarn, stats…"
+              placeholder="Ask anything — ban, timeout, warn, or a question…"
               aria-label="Assistant command"
             />
           </span>
@@ -145,8 +192,9 @@ export function AssistantPanel() {
           </button>
         </form>
         <div className="as-foot">
-          Commands run through your bot and are logged like any decision. Type{' '}
-          <span className="kbd">/</span> for exact syntax — it works even when the AI is offline.
+          Commands run through your bot and are logged like any decision; questions are answered by
+          the AI, which searches the web when it needs to. Type <span className="kbd">/</span> for
+          exact command syntax.
         </div>
       </aside>
     </>
@@ -180,6 +228,47 @@ function TurnView({
   const meta = actionMeta(turn.intent);
   const IconEl = ICON[meta.icon];
   const isQuery = turn.intent.action.startsWith('query') || turn.intent.action === 'unknown';
+
+  // Research answer (a question, not a moderation command).
+  if (turn.research) {
+    const { loading, answer, sources } = turn.research;
+    return (
+      <>
+        <div className="as-msg-user">{turn.command}</div>
+        <div className="card as-card">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <Icons.sparkles
+              className="ic"
+              style={{ color: 'var(--accent-2)', marginTop: 1, flex: 'none' }}
+            />
+            {loading ? (
+              <span style={{ color: 'var(--text-3)' }}>Thinking &amp; searching…</span>
+            ) : (
+              <div style={{ color: 'var(--text-2)', minWidth: 0 }}>
+                <span style={{ whiteSpace: 'pre-wrap' }}>{answer}</span>
+                {sources.length > 0 && (
+                  <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <b style={{ fontSize: 11, color: 'var(--text-3)' }}>Sources</b>
+                    {sources.map((s, i) => (
+                      <a
+                        key={i}
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: 'var(--accent-2)', fontSize: 12, wordBreak: 'break-all' }}
+                      >
+                        {s.title || s.url}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
