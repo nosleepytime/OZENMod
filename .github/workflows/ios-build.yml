@@ -1,0 +1,308 @@
+name: iOS Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "ios/**"
+      - "packages/**"
+      - "public/**"
+      - "scripts/**"
+      - "capacitor.config.ts"
+      - "package*.json"
+      - "vite.config.ts"
+      - ".github/workflows/ios-build.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "ios/**"
+      - "packages/**"
+      - "public/**"
+      - "scripts/**"
+      - "capacitor.config.ts"
+      - "package*.json"
+      - "vite.config.ts"
+      - ".github/workflows/ios-build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  unsigned:
+    name: Unsigned verification build
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Show Xcode version
+        run: |
+          mkdir -p artifacts
+          xcodebuild -version | tee artifacts/xcode-version.log
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run JavaScript tests
+        run: >-
+          npm run test:unit --
+          --reporter=default
+          --reporter=junit
+          --outputFile.junit=artifacts/ios-js-tests.xml
+
+      - name: Build PWA and sync Capacitor
+        run: npm run cap:sync
+
+      - name: Resolve Swift packages
+        run: |
+          set -o pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            | tee artifacts/xcode-resolve.log
+
+      - name: Build unsigned Simulator app
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath artifacts/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee artifacts/xcode-simulator.log
+
+      - name: Package Simulator app
+        run: |
+          SIMULATOR_APP="$(find artifacts/DerivedData/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$SIMULATOR_APP"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$SIMULATOR_APP" \
+            artifacts/VoxNote-Simulator.app.zip
+
+      - name: Create unsigned device archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/artifacts/VoxNote-unsigned.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            | tee artifacts/xcode-archive.log
+
+      - name: Package unsigned archive
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            artifacts/VoxNote-unsigned.xcarchive \
+            artifacts/VoxNote-unsigned.xcarchive.zip
+
+      - name: Upload unsigned artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: voxnote-ios-unsigned-${{ github.run_number }}
+          path: |
+            artifacts/VoxNote-Simulator.app.zip
+            artifacts/VoxNote-unsigned.xcarchive.zip
+            artifacts/*.log
+            artifacts/*.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+  signed:
+    name: Signed IPA
+    if: github.event_name != 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+      IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+      IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+      IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+      IOS_EXPORT_METHOD: ${{ vars.IOS_EXPORT_METHOD || 'release-testing' }}
+
+    steps:
+      - name: Check signing configuration
+        id: signing
+        run: |
+          if [[ -n "$IOS_CERTIFICATE_BASE64" \
+            && -n "$IOS_CERTIFICATE_PASSWORD" \
+            && -n "$IOS_PROVISIONING_PROFILE_BASE64" \
+            && -n "$IOS_TEAM_ID" \
+            && -n "$IOS_BUNDLE_ID" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Signed IPA skipped: one or more signing secrets are absent."
+          fi
+
+      - name: Check out repository
+        if: steps.signing.outputs.ready == 'true'
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        if: steps.signing.outputs.ready == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.signing.outputs.ready == 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Build PWA and sync Capacitor
+        if: steps.signing.outputs.ready == 'true'
+        run: npm run cap:sync
+
+      - name: Import certificate and provisioning profile
+        if: steps.signing.outputs.ready == 'true'
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/voxnote-signing.p12"
+          PROFILE_SOURCE_PATH="$RUNNER_TEMP/voxnote.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/voxnote-profile.plist"
+          KEYCHAIN_PATH="$RUNNER_TEMP/voxnote-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          printf '%s' "$IOS_CERTIFICATE_BASE64" \
+            | openssl base64 -d -A -out "$CERTIFICATE_PATH"
+          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" \
+            | openssl base64 -d -A -out "$PROFILE_SOURCE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$IOS_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+
+          security cms -D -i "$PROFILE_SOURCE_PATH" > "$PROFILE_PLIST"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print UUID' "$PROFILE_PLIST")"
+          INSTALLED_PROFILE_PATH="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          mkdir -p "$(dirname "$INSTALLED_PROFILE_PATH")"
+          cp "$PROFILE_SOURCE_PATH" "$INSTALLED_PROFILE_PATH"
+
+          {
+            echo "KEYCHAIN_PATH=$KEYCHAIN_PATH"
+            echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD"
+            echo "PROFILE_UUID=$PROFILE_UUID"
+            echo "INSTALLED_PROFILE_PATH=$INSTALLED_PROFILE_PATH"
+          } >> "$GITHUB_ENV"
+
+      - name: Create signed archive
+        if: steps.signing.outputs.ready == 'true'
+        run: |
+          mkdir -p artifacts/export
+          set -o pipefail
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/artifacts/VoxNote-signed.xcarchive" \
+            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$IOS_BUNDLE_ID" \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+            | tee artifacts/xcode-signed-archive.log
+
+      - name: Create export options
+        if: steps.signing.outputs.ready == 'true'
+        run: |
+          cat > artifacts/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>${IOS_EXPORT_METHOD}</string>
+            <key>teamID</key>
+            <string>${IOS_TEAM_ID}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${IOS_BUNDLE_ID}</key>
+              <string>${PROFILE_UUID}</string>
+            </dict>
+            <key>stripSwiftSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Export signed IPA
+        if: steps.signing.outputs.ready == 'true'
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/artifacts/VoxNote-signed.xcarchive" \
+            -exportPath "$PWD/artifacts/export" \
+            -exportOptionsPlist "$PWD/artifacts/ExportOptions.plist" \
+            | tee artifacts/xcode-export.log
+          test -n "$(find artifacts/export -maxdepth 1 -name '*.ipa' -print -quit)"
+
+      - name: Package signed archive
+        if: steps.signing.outputs.ready == 'true'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            artifacts/VoxNote-signed.xcarchive \
+            artifacts/VoxNote-signed.xcarchive.zip
+
+      - name: Upload signed IPA, archive, and logs
+        if: always() && steps.signing.outputs.ready == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: voxnote-ios-signed-${{ github.run_number }}
+          path: |
+            artifacts/export/*.ipa
+            artifacts/VoxNote-signed.xcarchive.zip
+            artifacts/ExportOptions.plist
+            artifacts/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Remove temporary signing material
+        if: always() && steps.signing.outputs.ready == 'true'
+        run: |
+          if [[ -n "${KEYCHAIN_PATH:-}" && -f "$KEYCHAIN_PATH" ]]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+          if [[ -n "${INSTALLED_PROFILE_PATH:-}" ]]; then
+            rm -f "$INSTALLED_PROFILE_PATH"
+          fi
