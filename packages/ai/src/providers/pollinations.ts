@@ -39,6 +39,17 @@ interface ChatResponse {
   choices?: { message?: { content?: string } }[];
 }
 
+/**
+ * Reusable OpenAI-compatible chat call against Pollinations. Exposed so the AI
+ * Assistant research loop (search/research.ts) can drive the free provider.
+ */
+export async function pollinationsChat(
+  messages: { role: string; content: string }[],
+  opts: CallOptions,
+): Promise<string> {
+  return chat(messages, opts);
+}
+
 async function chat(
   messages: { role: string; content: string }[],
   opts: CallOptions,

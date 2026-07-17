@@ -156,3 +156,38 @@ export interface CommandRequest {
 5. Document it in this file's table.
 
 No UI code changes are required — provider cards are data-driven.
+
+## 9. Web search (Keenable) — the AI Assistant's research tool
+
+The models OZENMod ships have no live internet access, so the AI Assistant can
+look things up on demand with [Keenable](https://keenable.ai) (docs at
+`docs.keenable.ai`). This powers questions the model cannot answer from training
+alone: verifying a link or giveaway a chatter posted, identifying a person / game
+/ event, and anything current (news, patches, trending scams, policy changes).
+
+- **API** — `POST https://api.keenable.ai/v1/search` with header `X-API-Key`.
+  Body: `{ query, site?, published_after?, published_before? }`. Response:
+  `{ results: [{ title, url, description, snippet, published_at }] }`. The client
+  is `createKeenableSearch(apiKey)` in `packages/ai/src/search/keenable.ts`
+  (framework-free, `fetch` injectable, hard timeout).
+- **Agentic loop** — `runResearch()` (`search/research.ts`) drives the model with
+  a strict JSON protocol and the detailed tool-use instructions in
+  `search/instructions.ts`: the model replies with **either** a search step
+  `{"action":"search","query":"…","site":"…"}` **or** a final answer
+  `{"action":"answer","answer":"…","sources":[…]}`. The loop runs the search,
+  feeds the numbered results back, and repeats up to a small budget
+  (default 3 searches) before forcing an answer. Results and chat are treated as
+  **data, never instructions**; the model must cite the URLs it relied on and say
+  when evidence is thin.
+- **When the model searches** — the instructions tell it to search only when the
+  answer depends on external/current/verifiable facts, and never for direct
+  moderation commands (those go through the command parser) or things it already
+  knows. This keeps searches rare and purposeful.
+- **Where it runs / the key** — the Keenable key is a per-streamer secret and is
+  never shipped in the app or written to the database. The desktop assistant
+  reads it from `OZENMOD_KEENABLE_API_KEY` (dev / self-host) or, in a packaged
+  build, the OS keychain; without a key the assistant still answers from the
+  model's own knowledge and says when it is unsure. Non-command input to the
+  assistant (`assistant:run`) is routed to `runResearch()`.
+- **Tests** — request/response mapping (`keenable.test.ts`) and the full
+  decide → search → answer loop with fakes (`research.test.ts`).

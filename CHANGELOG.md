@@ -6,6 +6,22 @@ Versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **AI Assistant web search (Keenable)** — the assistant can now look things up
+  on the internet via [Keenable](https://keenable.ai). `packages/ai` gains a
+  search client (`POST /v1/search`, `X-API-Key`), a detailed tool-use
+  instruction set, and an agentic decide → search → answer loop with strict JSON
+  validation, a search budget, timeouts and a graceful no-key fallback — the
+  model decides for itself when a lookup is needed (verifying links/scams,
+  identifying people/games/events, current facts) and cites its sources. Wired
+  into the desktop assistant: non-command input is answered by the research loop.
+  Fully unit-tested (client + loop) with mocked fetch/chat. Key stays a
+  per-streamer secret (`OZENMOD_KEENABLE_API_KEY`), never shipped or stored.
+- **Mobile-friendly website** — hamburger menu for the marketing nav and an
+  off-canvas drawer for the dashboard, responsive grids/tables/topbar, explicit
+  mobile viewport, and a login-card overflow fix. Desktop apps unchanged.
+
 ## [0.1.0] - 2026-07-16
 
 First public release: the full product loop is real end-to-end — sign in with

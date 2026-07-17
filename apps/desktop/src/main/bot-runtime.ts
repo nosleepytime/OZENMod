@@ -30,6 +30,7 @@ import type { BotState, BotStatus, CommandResult, LogEntry, SystemInfo } from '.
 import type { LiveConnector } from './twitch-live';
 import { createFirebaseSync, type FirebaseSync } from './firebase-sync';
 import { createAiEscalator, type AiEscalator } from './ai-escalator';
+import { createResearcher, type Researcher } from './assistant-research';
 
 export class BotRuntime extends EventEmitter {
   private state: BotState = 'idle';
@@ -41,6 +42,7 @@ export class BotRuntime extends EventEmitter {
   private readonly engine = new ModerationEngine(defaultConfig());
   private readonly sync: FirebaseSync;
   private readonly ai: AiEscalator;
+  private readonly researcher: Researcher = createResearcher();
   private logs: LogEntry[] = [];
   private feed: ModerationEvent[] = [];
   private review: ReviewItem[] = [];
@@ -281,11 +283,17 @@ export class BotRuntime extends EventEmitter {
     }
   }
 
-  /** Parse a command; execute immediately unless it needs confirmation. */
-  runCommand(raw: string): CommandResult {
+  /**
+   * Parse a command; execute immediately unless it needs confirmation. When the
+   * input is not a moderation command, treat it as a question and answer it with
+   * the AI research loop (web search via Keenable when configured).
+   */
+  async runCommand(raw: string): Promise<CommandResult> {
     const intent = parseCommand(raw);
     if (intent.action === 'unknown') {
-      return { intent, status: 'failed', message: intent.reply };
+      this.log('info', `Assistant question: ${raw}`);
+      const message = await this.researcher.ask(raw).catch(() => intent.reply);
+      return { intent, status: 'done', message };
     }
     if (intent.needsConfirmation) {
       return { intent, status: 'needs-confirmation', message: intent.reply };
