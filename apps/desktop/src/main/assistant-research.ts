@@ -4,27 +4,27 @@
  * lookup), the assistant runs the @ozenmod/ai research loop: the model decides
  * whether it needs Keenable web search, runs it, and answers with sources.
  *
- * The Keenable API key is a per-streamer secret. In development / self-hosting
- * it is read from OZENMOD_KEENABLE_API_KEY; without it the assistant still
- * answers from the model's own knowledge (and says when it is unsure).
+ * Keenable web search is FREE with no API key (unauthenticated tier), so search
+ * is always available. An optional OZENMOD_KEENABLE_API_KEY only raises the rate
+ * limits; it is a per-streamer secret and is never shipped or stored.
  */
-import { createKeenableSearch, pollinationsChat, runResearch, type WebSearch } from '@ozenmod/ai';
+import { createKeenableSearch, pollinationsChat, runResearch } from '@ozenmod/ai';
 
 const RESEARCH_TIMEOUT_MS = 8000;
 const MAX_SEARCHES = 3;
 
 export interface Researcher {
-  /** True when web search is configured (the assistant always answers regardless). */
+  /** Web search is always available (free, keyless). */
   searchEnabled: boolean;
   ask(text: string, context?: string): Promise<string>;
 }
 
 export function createResearcher(): Researcher {
-  const key = process.env.OZENMOD_KEENABLE_API_KEY;
-  const search: WebSearch | null = key ? createKeenableSearch(key) : null;
+  // Keyless free tier by default; the optional key only lifts rate limits.
+  const search = createKeenableSearch(process.env.OZENMOD_KEENABLE_API_KEY);
 
   return {
-    searchEnabled: search !== null,
+    searchEnabled: true,
     async ask(text: string, context?: string): Promise<string> {
       const res = await runResearch(
         { request: text, ...(context ? { context } : {}) },

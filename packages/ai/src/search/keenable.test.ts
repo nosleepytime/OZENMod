@@ -53,6 +53,17 @@ describe('createKeenableSearch', () => {
     expect(results[1]!.title).toBe('https://example.com/b');
   });
 
+  it('omits the API key header when no key is given (free tier)', async () => {
+    const fetchImpl = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ results: [] }),
+    );
+    const search = createKeenableSearch(undefined, fetchImpl as unknown as typeof fetch);
+    await search.search({ query: 'anything' }, { timeoutMs: 1000 });
+    const headers = fetchImpl.mock.calls[0]![1]!.headers as Record<string, string>;
+    expect(headers['X-API-Key']).toBeUndefined();
+    expect(headers['content-type']).toBe('application/json');
+  });
+
   it('returns [] for a blank query without calling the API', async () => {
     const fetchImpl = vi.fn();
     const search = createKeenableSearch('k', fetchImpl as unknown as typeof fetch);

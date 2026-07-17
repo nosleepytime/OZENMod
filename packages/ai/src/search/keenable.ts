@@ -6,7 +6,9 @@
  * scam claims, identifying people/games/events, and answering questions that
  * need current facts. Framework-free; `fetch` is injectable for tests.
  *
- * API: POST https://api.keenable.ai/v1/search with header `X-API-Key`.
+ * API: POST https://api.keenable.ai/v1/search. Works with NO API key on the free
+ * tier (1000 requests/hour, 10/second); an optional `X-API-Key` only raises the
+ * rate limits — so OZENMod's web search is free with no signup.
  */
 
 const ENDPOINT = 'https://api.keenable.ai/v1/search';
@@ -53,8 +55,12 @@ interface KeenableResponse {
   }[];
 }
 
-/** Create a Keenable-backed web search. Requires an API key (kept server-side). */
-export function createKeenableSearch(apiKey: string, fetchImpl: typeof fetch = fetch): WebSearch {
+/**
+ * Create a Keenable-backed web search. The API key is OPTIONAL — without one the
+ * free unauthenticated tier is used; a key (kept server-side) only raises the
+ * rate limits.
+ */
+export function createKeenableSearch(apiKey?: string, fetchImpl: typeof fetch = fetch): WebSearch {
   return {
     async search(query: SearchQuery, opts: SearchOptions): Promise<SearchResult[]> {
       if (!query.query.trim()) return [];
@@ -67,9 +73,11 @@ export function createKeenableSearch(apiKey: string, fetchImpl: typeof fetch = f
         if (query.publishedAfter) body.published_after = query.publishedAfter;
         if (query.publishedBefore) body.published_before = query.publishedBefore;
 
+        const headers: Record<string, string> = { 'content-type': 'application/json' };
+        if (apiKey) headers['X-API-Key'] = apiKey;
         const res = await fetchImpl(ENDPOINT, {
           method: 'POST',
-          headers: { 'content-type': 'application/json', 'X-API-Key': apiKey },
+          headers,
           body: JSON.stringify(body),
           signal: controller.signal,
         });

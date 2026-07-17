@@ -5,7 +5,7 @@
  * questions and lookups (non-moderation-command input).
  */
 import { NextResponse } from 'next/server';
-import { runResearch, pollinationsChat, createKeenableSearch, type WebSearch } from '@ozenmod/ai';
+import { runResearch, pollinationsChat, createKeenableSearch } from '@ozenmod/ai';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,8 +22,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!q) return NextResponse.json({ error: 'missing_request' }, { status: 400 });
   const context = typeof body.context === 'string' ? body.context : undefined;
 
+  // Keenable is free with no key (unauthenticated tier); an optional key only
+  // raises the rate limits. Search is therefore always available.
   const key = process.env.KEENABLE_API_KEY ?? process.env.OZENMOD_KEENABLE_API_KEY;
-  const search: WebSearch | null = key ? createKeenableSearch(key) : null;
+  const search = createKeenableSearch(key);
 
   try {
     const res = await runResearch(
