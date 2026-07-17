@@ -1,0 +1,137 @@
+name: iOS Unsigned Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "ios/**"
+      - "packages/**"
+      - "public/**"
+      - "scripts/**"
+      - "capacitor.config.ts"
+      - "package*.json"
+      - "vite.config.ts"
+      - ".github/workflows/ios-unsigned-build.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "ios/**"
+      - "packages/**"
+      - "public/**"
+      - "scripts/**"
+      - "capacitor.config.ts"
+      - "package*.json"
+      - "vite.config.ts"
+      - ".github/workflows/ios-unsigned-build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build unsigned iOS artifacts
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Prepare artifacts directory
+        run: |
+          mkdir -p artifacts
+          xcodebuild -version | tee artifacts/xcode-version.log
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run tests
+        run: >-
+          npm run test:unit --
+          --reporter=default
+          --reporter=junit
+          --outputFile.junit=artifacts/ios-js-tests.xml
+
+      - name: Build PWA and sync Capacitor iOS
+        run: npm run cap:sync
+
+      - name: Resolve Swift packages
+        run: |
+          set -o pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            | tee artifacts/xcode-resolve.log
+
+      - name: Build unsigned Simulator app
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath artifacts/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            | tee artifacts/xcode-simulator.log
+
+      - name: Package Simulator app
+        run: |
+          SIMULATOR_APP="$(find artifacts/DerivedData/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$SIMULATOR_APP"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$SIMULATOR_APP" \
+            artifacts/VoxNote-Simulator.app.zip
+
+      - name: Create unsigned iOS device archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/artifacts/VoxNote-unsigned.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            | tee artifacts/xcode-archive.log
+
+      - name: Package unsigned device app and archive
+        run: |
+          DEVICE_APP="$(find artifacts/VoxNote-unsigned.xcarchive/Products/Applications -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$DEVICE_APP"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$DEVICE_APP" \
+            artifacts/VoxNote-Unsigned-Device.app.zip
+          ditto -c -k --sequesterRsrc --keepParent \
+            artifacts/VoxNote-unsigned.xcarchive \
+            artifacts/VoxNote-unsigned.xcarchive.zip
+
+      - name: Upload unsigned app, archive, tests, and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: voxnote-ios-unsigned-${{ github.run_number }}
+          path: |
+            artifacts/VoxNote-Simulator.app.zip
+            artifacts/VoxNote-Unsigned-Device.app.zip
+            artifacts/VoxNote-unsigned.xcarchive.zip
+            artifacts/*.log
+            artifacts/*.xml
+          if-no-files-found: warn
+          retention-days: 14
