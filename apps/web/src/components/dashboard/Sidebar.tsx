@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { DOCS_URL } from '@ozenmod/shared';
 import { Brand } from '@/components/Brand';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useMobileNav } from './MobileNavContext';
 import { avatarGradient } from '@/lib/format';
 import { Icons } from './icons';
 
@@ -19,29 +20,37 @@ const NAV = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { open, close } = useMobileNav();
   const display = user?.displayName ?? user?.login ?? '—';
   const initial = display.charAt(0).toUpperCase() || '?';
   return (
-    <aside className="sidebar">
-      <Link href="/">
-        <Brand />
-      </Link>
-      <div className="nav-label">Channel</div>
-      {NAV.map(({ href, label, icon: Icon }) => {
-        const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href);
-        return (
-          <Link className={`nav-item${active ? ' active' : ''}`} href={href} key={href}>
-            <Icon className="ic" /> {label}
-          </Link>
-        );
-      })}
-      <div className="nav-label">Resources</div>
-      <Link className="nav-item" href="/download">
-        <Icons.download className="ic" /> Desktop app
-      </Link>
-      <a className="nav-item" href={DOCS_URL} target="_blank" rel="noreferrer">
-        <Icons.code className="ic" /> Documentation
-      </a>
+    <>
+      {open && <div className="nav-overlay" onClick={close} aria-hidden="true" />}
+      <aside className={`sidebar${open ? ' open' : ''}`}>
+        <Link href="/" onClick={close}>
+          <Brand />
+        </Link>
+        <div className="nav-label">Channel</div>
+        {NAV.map(({ href, label, icon: Icon }) => {
+          const active = href === '/dashboard' ? pathname === href : pathname.startsWith(href);
+          return (
+            <Link
+              className={`nav-item${active ? ' active' : ''}`}
+              href={href}
+              key={href}
+              onClick={close}
+            >
+              <Icon className="ic" /> {label}
+            </Link>
+          );
+        })}
+        <div className="nav-label">Resources</div>
+        <Link className="nav-item" href="/download" onClick={close}>
+          <Icons.download className="ic" /> Desktop app
+        </Link>
+        <a className="nav-item" href={DOCS_URL} target="_blank" rel="noreferrer">
+          <Icons.code className="ic" /> Documentation
+        </a>
       <div className="nav-spacer" />
       <div className="nav-user">
         {user?.avatarUrl ? (
@@ -88,6 +97,7 @@ export function Sidebar() {
           <Icons.logout className="ic" />
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useChannelData } from '@/lib/useChannelData';
 import { useAssistant } from './AssistantContext';
+import { useMobileNav } from './MobileNavContext';
 import { Icons } from './icons';
 
 function elapsed(startedAt: number | null | undefined): string {
@@ -14,12 +15,16 @@ function elapsed(startedAt: number | null | undefined): string {
 
 export function Topbar({ title }: { title: string }) {
   const { toggle } = useAssistant();
+  const { toggle: toggleNav } = useMobileNav();
   const { user } = useAuth();
   const { online, status } = useChannelData();
   const channel = user?.login ?? '—';
 
   return (
     <div className="topbar">
+      <button className="nav-burger" onClick={toggleNav} aria-label="Open menu">
+        <Icons.menu className="ic" />
+      </button>
       <span className="topbar-title">{title}</span>
       <span className="divider-v" />
       {online ? (

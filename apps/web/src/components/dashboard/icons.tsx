@@ -32,6 +32,7 @@ import {
   Trash2,
   Twitch,
   LogOut,
+  Menu,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -46,6 +47,7 @@ export const Icons = {
   download: Download,
   code: Code2,
   bell: Bell,
+  menu: Menu,
   chevron: ChevronDown,
   check: Check,
   x: X,
