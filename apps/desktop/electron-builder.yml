@@ -1,6 +1,9 @@
 appId: app.ozenmod.desktop
 productName: OZENMod
 copyright: Copyright © 2026 OZENMod contributors
+# Pinned so electron-builder never has to introspect a hoisted node_modules in
+# the npm-workspaces monorepo (keep in sync with the electron devDependency).
+electronVersion: 33.4.11
 directories:
   output: release
   buildResources: build
