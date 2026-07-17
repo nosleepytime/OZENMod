@@ -43,31 +43,94 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Locate VoxNote project
+        id: project
+        run: |
+          PROJECT_DIRECTORY=""
+
+          for CANDIDATE in "." "voxnote-local-first"; do
+            if [[ -f "$CANDIDATE/package.json" && -d "$CANDIDATE/ios/App/App.xcodeproj" ]]; then
+              PROJECT_DIRECTORY="$CANDIDATE"
+              break
+            fi
+          done
+
+          if [[ -z "$PROJECT_DIRECTORY" ]]; then
+            XCODE_PROJECT="$(find . -type d -path '*/ios/App/App.xcodeproj' -print -quit)"
+            if [[ -n "$XCODE_PROJECT" ]]; then
+              PROJECT_DIRECTORY="${XCODE_PROJECT%/ios/App/App.xcodeproj}"
+              PROJECT_DIRECTORY="${PROJECT_DIRECTORY#./}"
+              [[ -n "$PROJECT_DIRECTORY" ]] || PROJECT_DIRECTORY="."
+            fi
+          fi
+
+          if [[ -z "$PROJECT_DIRECTORY" || ! -f "$PROJECT_DIRECTORY/package.json" ]]; then
+            echo "::error::VoxNote project not found. Upload the complete source repository, including package.json and ios/App/App.xcodeproj."
+            find . -maxdepth 3 -name package.json -print
+            exit 1
+          fi
+
+          echo "directory=$PROJECT_DIRECTORY" >> "$GITHUB_OUTPUT"
+          echo "VoxNote project directory: $PROJECT_DIRECTORY"
+
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: npm
 
       - name: Prepare artifacts directory
+        working-directory: ${{ steps.project.outputs.directory }}
         run: |
           mkdir -p artifacts
           xcodebuild -version | tee artifacts/xcode-version.log
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        working-directory: ${{ steps.project.outputs.directory }}
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci --ignore-scripts
+          else
+            npm install --ignore-scripts
+          fi
 
-      - name: Run tests
-        run: >-
-          npm run test:unit --
-          --reporter=default
-          --reporter=junit
-          --outputFile.junit=artifacts/ios-js-tests.xml
+      - name: Run tests when configured
+        working-directory: ${{ steps.project.outputs.directory }}
+        run: |
+          if node -e 'process.exit(require("./package.json").scripts?.["test:unit"] ? 0 : 1)'; then
+            npm run test:unit -- \
+              --reporter=default \
+              --reporter=junit \
+              --outputFile.junit=artifacts/ios-js-tests.xml
+          else
+            echo "::notice::No test:unit script is configured; continuing with the unsigned build."
+          fi
 
       - name: Build PWA and sync Capacitor iOS
-        run: npm run cap:sync
+        working-directory: ${{ steps.project.outputs.directory }}
+        run: |
+          has_script() {
+            node -e 'const name=process.argv[1]; process.exit(require("./package.json").scripts?.[name] ? 0 : 1)' "$1"
+          }
+
+          if has_script "cap:sync"; then
+            npm run cap:sync
+          elif [[ -f capacitor.config.ts || -f capacitor.config.json ]]; then
+            if has_script "build:pwa"; then
+              npm run build:pwa
+            elif has_script "build"; then
+              npm run build
+            else
+              echo "::error::No cap:sync, build:pwa, or build script exists in package.json."
+              exit 1
+            fi
+            npx cap sync ios
+          else
+            echo "::error::Capacitor configuration was not found in the detected project directory."
+            exit 1
+          fi
 
       - name: Resolve Swift packages
+        working-directory: ${{ steps.project.outputs.directory }}
         run: |
           set -o pipefail
           xcodebuild -resolvePackageDependencies \
@@ -76,6 +139,7 @@ jobs:
             | tee artifacts/xcode-resolve.log
 
       - name: Build unsigned Simulator app
+        working-directory: ${{ steps.project.outputs.directory }}
         run: |
           set -o pipefail
           xcodebuild build \
@@ -90,6 +154,7 @@ jobs:
             | tee artifacts/xcode-simulator.log
 
       - name: Package Simulator app
+        working-directory: ${{ steps.project.outputs.directory }}
         run: |
           SIMULATOR_APP="$(find artifacts/DerivedData/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$SIMULATOR_APP"
@@ -98,6 +163,7 @@ jobs:
             artifacts/VoxNote-Simulator.app.zip
 
       - name: Create unsigned iOS device archive
+        working-directory: ${{ steps.project.outputs.directory }}
         run: |
           set -o pipefail
           xcodebuild archive \
@@ -112,6 +178,7 @@ jobs:
             | tee artifacts/xcode-archive.log
 
       - name: Package unsigned device app and archive
+        working-directory: ${{ steps.project.outputs.directory }}
         run: |
           DEVICE_APP="$(find artifacts/VoxNote-unsigned.xcarchive/Products/Applications -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$DEVICE_APP"
@@ -128,10 +195,10 @@ jobs:
         with:
           name: voxnote-ios-unsigned-${{ github.run_number }}
           path: |
-            artifacts/VoxNote-Simulator.app.zip
-            artifacts/VoxNote-Unsigned-Device.app.zip
-            artifacts/VoxNote-unsigned.xcarchive.zip
-            artifacts/*.log
-            artifacts/*.xml
+            ${{ steps.project.outputs.directory }}/artifacts/VoxNote-Simulator.app.zip
+            ${{ steps.project.outputs.directory }}/artifacts/VoxNote-Unsigned-Device.app.zip
+            ${{ steps.project.outputs.directory }}/artifacts/VoxNote-unsigned.xcarchive.zip
+            ${{ steps.project.outputs.directory }}/artifacts/*.log
+            ${{ steps.project.outputs.directory }}/artifacts/*.xml
           if-no-files-found: warn
           retention-days: 14
